@@ -141,3 +141,48 @@ func GetCurrentUser(c *gin.Context) {
 		"credits": user.Credits,
 	})
 }
+
+func UpdateUserName(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	var input struct {
+		Name string `json:"name"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	name := strings.TrimSpace(input.Name)
+
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Name cannot be empty",
+		})
+		return
+	}
+
+	if err := database.DB.Model(&models.User{}).
+		Where("id = ?", userID.(uint)).
+		Update("name", name).Error; err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update name",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"name": name,
+	})
+}
