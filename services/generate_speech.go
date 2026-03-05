@@ -12,7 +12,7 @@ var personaVoices = map[string]openai.SpeechVoice{
 	"oliver": openai.SpeechVoice("alloy"),
 	"john":   openai.SpeechVoice("echo"),
 	"sophia": openai.SpeechVoice("marin"),
-	"trisha": openai.SpeechVoice("coral"),
+	"trisha": openai.SpeechVoice("sage"),
 }
 
 var personaInstructions = map[string]string{

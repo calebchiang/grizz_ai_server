@@ -11,6 +11,7 @@ import (
 	"github.com/calebchiang/thirdparty_server/services"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/sashabaranov/go-openai"
 )
 
 var upgrader = websocket.Upgrader{
@@ -108,12 +109,86 @@ func PracticeSocket(c *gin.Context) {
 		"audio":   audioBase64,
 	})
 
-	// Keep socket alive
 	for {
-		_, _, err := conn.ReadMessage()
+
+		var msg map[string]interface{}
+
+		err := conn.ReadJSON(&msg)
 		if err != nil {
 			fmt.Println("WebSocket closed:", err)
 			break
+		}
+
+		msgType, _ := msg["type"].(string)
+
+		if msgType == "user_message" {
+
+			userText, _ := msg["content"].(string)
+
+			if userText == "" {
+				continue
+			}
+
+			// save message
+			database.DB.Create(&models.PracticeMessage{
+				SessionID: session.ID,
+				Role:      "user",
+				Content:   userText,
+			})
+
+			// load conversation history
+			var history []models.PracticeMessage
+			database.DB.Where("session_id = ?", session.ID).Order("created_at asc").Find(&history)
+
+			// convert history → OpenAI format
+			var messages []openai.ChatCompletionMessage
+
+			for _, m := range history {
+
+				role := "user"
+				if m.Role == "assistant" {
+					role = "assistant"
+				}
+
+				messages = append(messages, openai.ChatCompletionMessage{
+					Role:    role,
+					Content: m.Content,
+				})
+			}
+
+			// generate reply
+			reply, err := services.GenerateReply(
+				session.Scenario,
+				session.Persona,
+				messages,
+			)
+
+			if err != nil {
+				continue
+			}
+
+			// save assistant reply
+			database.DB.Create(&models.PracticeMessage{
+				SessionID: session.ID,
+				Role:      "assistant",
+				Content:   reply,
+			})
+
+			// generate TTS
+			audioBytes, err := services.GenerateSpeech(reply, session.Persona)
+
+			audioBase64 := ""
+
+			if err == nil && len(audioBytes) > 0 {
+				audioBase64 = base64.StdEncoding.EncodeToString(audioBytes)
+			}
+
+			// send back
+			conn.WriteJSON(gin.H{
+				"type":    "assistant_message",
+				"content": reply,
+				"audio":   audioBase64,
+			})
 		}
 	}
 }
