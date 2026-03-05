@@ -12,5 +12,6 @@ func PracticeRoutes(r *gin.Engine) {
 	auth.Use(middleware.RequireAuth())
 	{
 		auth.POST("/start", controllers.StartPractice)
+		auth.GET("/ws", controllers.PracticeSocket)
 	}
 }
