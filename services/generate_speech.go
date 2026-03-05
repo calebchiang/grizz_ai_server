@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"io"
-	"os"
 	"strings"
 
 	openai "github.com/sashabaranov/go-openai"
@@ -51,16 +50,4 @@ func GenerateSpeech(text string, persona string) ([]byte, error) {
 	}
 
 	return audioBytes, nil
-}
-
-func SaveSpeechFile(audio []byte, filename string) error {
-
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write(audio)
-	return err
 }

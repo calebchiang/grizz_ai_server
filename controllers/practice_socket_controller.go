@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -23,6 +24,7 @@ func PracticeSocket(c *gin.Context) {
 	// Upgrade HTTP → WebSocket
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
+		fmt.Println("WebSocket upgrade failed:", err)
 		return
 	}
 	defer conn.Close()
@@ -80,43 +82,37 @@ func PracticeSocket(c *gin.Context) {
 		return
 	}
 
-	// Generate speech
+	// Generate speech using TTS
 	audioBytes, err := services.GenerateSpeech(firstMessage, session.Persona)
 
-	audioURL := ""
+	audioBase64 := ""
 
-	if err == nil {
+	if err != nil {
 
-		filename := fmt.Sprintf("speech_%d.mp3", message.ID)
+		fmt.Println("TTS generation failed:", err)
 
-		err = services.SaveSpeechFile(audioBytes, filename)
+	} else {
 
-		if err == nil {
+		fmt.Println("Generated speech bytes:", len(audioBytes))
 
-			fmt.Println("✅ Saved speech file:", filename)
+		// Convert audio bytes to Base64
+		audioBase64 = base64.StdEncoding.EncodeToString(audioBytes)
 
-			// assuming you serve files from /audio
-			audioURL = fmt.Sprintf(
-				"https://grizzaiserver-production.up.railway.app/audio/%s",
-				filename,
-			)
-
-			fmt.Println("🌍 Audio URL:", audioURL)
-
-		}
+		fmt.Println("Sending audio through websocket")
 	}
 
-	// Send message through socket
+	// Send AI message through websocket
 	conn.WriteJSON(gin.H{
-		"type":      "assistant_message",
-		"content":   firstMessage,
-		"audio_url": audioURL,
+		"type":    "assistant_message",
+		"content": firstMessage,
+		"audio":   audioBase64,
 	})
 
 	// Keep socket alive
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
+			fmt.Println("WebSocket closed:", err)
 			break
 		}
 	}
