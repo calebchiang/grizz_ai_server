@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -79,13 +80,36 @@ func PracticeSocket(c *gin.Context) {
 		return
 	}
 
+	// Generate speech
+	audioBytes, err := services.GenerateSpeech(firstMessage, session.Persona)
+
+	audioURL := ""
+
+	if err == nil {
+
+		filename := fmt.Sprintf("speech_%d.mp3", message.ID)
+
+		err = services.SaveSpeechFile(audioBytes, filename)
+
+		if err == nil {
+
+			// assuming you serve files from /audio
+			audioURL = fmt.Sprintf(
+				"https://grizzaiserver-production.up.railway.app/audio/%s",
+				filename,
+			)
+
+		}
+	}
+
 	// Send message through socket
 	conn.WriteJSON(gin.H{
-		"type":    "assistant_message",
-		"content": firstMessage,
+		"type":      "assistant_message",
+		"content":   firstMessage,
+		"audio_url": audioURL,
 	})
 
-	// Keep socket alive (no conversation logic yet)
+	// Keep socket alive
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
