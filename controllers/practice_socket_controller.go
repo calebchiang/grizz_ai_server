@@ -93,11 +93,15 @@ func PracticeSocket(c *gin.Context) {
 
 		if err == nil {
 
+			fmt.Println("✅ Saved speech file:", filename)
+
 			// assuming you serve files from /audio
 			audioURL = fmt.Sprintf(
 				"https://grizzaiserver-production.up.railway.app/audio/%s",
 				filename,
 			)
+
+			fmt.Println("🌍 Audio URL:", audioURL)
 
 		}
 	}
