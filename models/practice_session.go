@@ -6,6 +6,7 @@ type PracticeSession struct {
 	ID              uint      `gorm:"primaryKey"`
 	UserID          uint      `gorm:"not null;index"` // FK -> users.id
 	Scenario        string    `gorm:"not null"`
+	Persona         string    `gorm:"not null"`
 	DurationSeconds int       `gorm:"not null;default:0"`
 	StartedAt       time.Time `gorm:"not null"`
 	EndedAt         *time.Time

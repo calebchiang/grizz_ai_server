@@ -21,6 +21,7 @@ func StartPractice(c *gin.Context) {
 
 	var input struct {
 		Scenario string `json:"scenario"`
+		Persona  string `json:"persona"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -37,9 +38,17 @@ func StartPractice(c *gin.Context) {
 		return
 	}
 
+	if input.Persona == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Persona is required",
+		})
+		return
+	}
+
 	session := models.PracticeSession{
 		UserID:    userID.(uint),
 		Scenario:  input.Scenario,
+		Persona:   input.Persona,
 		StartedAt: time.Now(),
 	}
 
@@ -53,6 +62,7 @@ func StartPractice(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"session_id": session.ID,
 		"scenario":   session.Scenario,
+		"persona":    session.Persona,
 		"started_at": session.StartedAt,
 	})
 }
