@@ -14,10 +14,13 @@ func main() {
 	database.Connect()
 	database.DB.AutoMigrate(
 		&models.User{},
+		&models.PracticeSession{},
+		&models.PracticeMessage{},
 	)
 
 	r := gin.Default()
 	routes.UserRoutes(r)
+	routes.PracticeRoutes(r)
 
 	r.Run()
 }
