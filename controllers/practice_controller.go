@@ -117,6 +117,7 @@ func FinishPractice(c *gin.Context) {
 		return
 	}
 
+	// Reconstruct transcript
 	transcript := services.ReconstructTranscript(session.Persona, messages)
 
 	now := time.Now()
@@ -127,6 +128,26 @@ func FinishPractice(c *gin.Context) {
 	session.DurationSeconds = duration
 	session.Transcript = transcript
 
+	// Generate conversation result using OpenAI
+	result, err := services.GenerateConversationResult(transcript)
+
+	if err != nil {
+
+		// If scoring fails we still finish the session
+		// but log the error for debugging
+		println("Failed to generate conversation result:", err.Error())
+
+	} else {
+
+		session.Clarity = result.Scores.Clarity
+		session.Engagement = result.Scores.Engagement
+		session.Confidence = result.Scores.Confidence
+		session.ConversationFlow = result.Scores.ConversationFlow
+		session.SocialAwareness = result.Scores.SocialAwareness
+
+		session.ConversationScore = result.ConversationScore
+	}
+
 	if err := database.DB.Save(&session).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to finish practice session",
@@ -135,7 +156,8 @@ func FinishPractice(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":          "Practice session finished",
-		"duration_seconds": duration,
+		"message":            "Practice session finished",
+		"duration_seconds":   duration,
+		"conversation_score": session.ConversationScore,
 	})
 }
