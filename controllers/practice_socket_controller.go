@@ -11,7 +11,7 @@ import (
 	"github.com/calebchiang/thirdparty_server/services"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/sashabaranov/go-openai"
+	openai "github.com/sashabaranov/go-openai"
 )
 
 var upgrader = websocket.Upgrader{
@@ -54,12 +54,14 @@ func PracticeSocket(c *gin.Context) {
 		return
 	}
 
+	// Keep conversation in memory for the lifetime of this websocket
+	var conversation []openai.ChatCompletionMessage
+
 	// Generate first AI message
 	firstMessage, err := services.GenerateFirstMessage(
 		session.Scenario,
 		session.Persona,
 	)
-
 	if err != nil {
 		conn.WriteJSON(gin.H{
 			"type":  "error",
@@ -68,7 +70,7 @@ func PracticeSocket(c *gin.Context) {
 		return
 	}
 
-	// Save message to DB
+	// Save first assistant message to DB
 	message := models.PracticeMessage{
 		SessionID: session.ID,
 		Role:      "assistant",
@@ -83,17 +85,20 @@ func PracticeSocket(c *gin.Context) {
 		return
 	}
 
+	// Add first assistant message to in-memory conversation
+	conversation = append(conversation, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleAssistant,
+		Content: firstMessage,
+	})
+
 	// Generate speech using TTS
 	audioBytes, err := services.GenerateSpeech(firstMessage, session.Persona)
 
 	audioBase64 := ""
 
 	if err != nil {
-
 		fmt.Println("TTS generation failed:", err)
-
 	} else {
-
 		fmt.Println("Generated speech bytes:", len(audioBytes))
 
 		// Convert audio bytes to Base64
@@ -110,7 +115,6 @@ func PracticeSocket(c *gin.Context) {
 	})
 
 	for {
-
 		var msg map[string]interface{}
 
 		err := conn.ReadJSON(&msg)
@@ -122,68 +126,77 @@ func PracticeSocket(c *gin.Context) {
 		msgType, _ := msg["type"].(string)
 
 		if msgType == "user_message" {
-
 			userText, _ := msg["content"].(string)
 
 			if userText == "" {
 				continue
 			}
 
-			// save message
-			database.DB.Create(&models.PracticeMessage{
+			// Save user message to DB
+			if err := database.DB.Create(&models.PracticeMessage{
 				SessionID: session.ID,
 				Role:      "user",
 				Content:   userText,
-			})
-
-			// load conversation history
-			var history []models.PracticeMessage
-			database.DB.Where("session_id = ?", session.ID).Order("created_at asc").Find(&history)
-
-			// convert history → OpenAI format
-			var messages []openai.ChatCompletionMessage
-
-			for _, m := range history {
-
-				role := "user"
-				if m.Role == "assistant" {
-					role = "assistant"
-				}
-
-				messages = append(messages, openai.ChatCompletionMessage{
-					Role:    role,
-					Content: m.Content,
-				})
-			}
-
-			// generate reply
-			reply, err := services.GenerateReply(
-				session.Scenario,
-				session.Persona,
-				messages,
-			)
-
-			if err != nil {
+			}).Error; err != nil {
+				fmt.Println("Failed to save user message:", err)
 				continue
 			}
 
-			// save assistant reply
-			database.DB.Create(&models.PracticeMessage{
+			// Add user message to in-memory conversation
+			conversation = append(conversation, openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleUser,
+				Content: userText,
+			})
+
+			// Optional: limit prompt size so the conversation does not grow forever
+			if len(conversation) > 12 {
+				conversation = conversation[len(conversation)-12:]
+			}
+
+			// Generate AI reply using in-memory conversation
+			reply, err := services.GenerateReply(
+				session.Scenario,
+				session.Persona,
+				conversation,
+			)
+			if err != nil {
+				fmt.Println("Failed to generate reply:", err)
+				continue
+			}
+
+			// Save assistant reply to DB
+			if err := database.DB.Create(&models.PracticeMessage{
 				SessionID: session.ID,
 				Role:      "assistant",
 				Content:   reply,
+			}).Error; err != nil {
+				fmt.Println("Failed to save assistant reply:", err)
+				continue
+			}
+
+			// Add assistant reply to in-memory conversation
+			conversation = append(conversation, openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleAssistant,
+				Content: reply,
 			})
 
-			// generate TTS
+			// Optional: limit again after appending assistant reply
+			if len(conversation) > 12 {
+				conversation = conversation[len(conversation)-12:]
+			}
+
+			// Generate TTS
 			audioBytes, err := services.GenerateSpeech(reply, session.Persona)
 
 			audioBase64 := ""
 
-			if err == nil && len(audioBytes) > 0 {
+			if err != nil {
+				fmt.Println("TTS generation failed:", err)
+			} else if len(audioBytes) > 0 {
 				audioBase64 = base64.StdEncoding.EncodeToString(audioBytes)
 			}
 
-			// send back
+			// Send assistant reply back through websocket
 			conn.WriteJSON(gin.H{
 				"type":    "assistant_message",
 				"content": reply,
