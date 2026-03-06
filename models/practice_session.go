@@ -10,6 +10,7 @@ type PracticeSession struct {
 	DurationSeconds int       `gorm:"not null;default:0"`
 	StartedAt       time.Time `gorm:"not null"`
 	EndedAt         *time.Time
+	Transcript      string `gorm:"type:text"`
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 

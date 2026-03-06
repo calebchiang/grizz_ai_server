@@ -13,5 +13,6 @@ func PracticeRoutes(r *gin.Engine) {
 	{
 		auth.POST("/start", controllers.StartPractice)
 		auth.GET("/ws", controllers.PracticeSocket)
+		auth.POST("/finish", controllers.FinishPractice)
 	}
 }
