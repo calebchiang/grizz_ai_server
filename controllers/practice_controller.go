@@ -159,5 +159,11 @@ func FinishPractice(c *gin.Context) {
 		"message":            "Practice session finished",
 		"duration_seconds":   duration,
 		"conversation_score": session.ConversationScore,
+
+		"clarity":           session.Clarity,
+		"engagement":        session.Engagement,
+		"confidence":        session.Confidence,
+		"conversation_flow": session.ConversationFlow,
+		"social_awareness":  session.SocialAwareness,
 	})
 }
