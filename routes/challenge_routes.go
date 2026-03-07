@@ -12,6 +12,6 @@ func ChallengeRoutes(r *gin.Engine) {
 	auth.Use(middleware.RequireAuth())
 	{
 		auth.GET("/today", controllers.GetTodayChallenges)
+		auth.POST("/complete", controllers.CompleteChallenge)
 	}
-
 }
