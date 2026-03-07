@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 func CreateUser(c *gin.Context) {
@@ -185,5 +186,44 @@ func UpdateUserName(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"name": name,
+	})
+}
+
+func AddXP(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	const reward = 25
+
+	if err := database.DB.Model(&models.User{}).
+		Where("id = ?", userID.(uint)).
+		UpdateColumn("xp", gorm.Expr("xp + ?", reward)).Error; err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to add XP",
+		})
+		return
+	}
+
+	var user models.User
+	if err := database.DB.
+		Select("xp").
+		Where("id = ?", userID.(uint)).
+		First(&user).Error; err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch XP",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"xp": user.XP,
 	})
 }

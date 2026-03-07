@@ -15,5 +15,6 @@ func UserRoutes(r *gin.Engine) {
 	{
 		auth.GET("/me", controllers.GetCurrentUser)
 		auth.PATCH("/name", controllers.UpdateUserName)
+		auth.POST("/xp", controllers.AddXP)
 	}
 }
