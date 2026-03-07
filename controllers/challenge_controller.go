@@ -10,6 +10,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type ChallengeResponse struct {
+	ID          uint   `json:"ID"`
+	Title       string `json:"Title"`
+	Description string `json:"Description"`
+	XPReward    int    `json:"XPReward"`
+	Completed   bool   `json:"Completed"`
+}
+
 func GetTodayChallenges(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
@@ -62,7 +70,46 @@ func GetTodayChallenges(c *gin.Context) {
 
 	selected := challenges[:3]
 
-	c.JSON(http.StatusOK, selected)
+	// Determine today's window in user timezone
+	startOfDay := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		0, 0, 0, 0,
+		location,
+	)
+
+	endOfDay := startOfDay.Add(24 * time.Hour)
+
+	// Load today's completions
+	var completions []models.ChallengeCompletion
+
+	database.DB.
+		Where("user_id = ? AND date >= ? AND date < ?", user.ID, startOfDay, endOfDay).
+		Find(&completions)
+
+	// Build lookup map
+	completedMap := map[uint]bool{}
+
+	for _, comp := range completions {
+		completedMap[comp.ChallengeID] = true
+	}
+
+	// Build response
+	var response []ChallengeResponse
+
+	for _, ch := range selected {
+
+		response = append(response, ChallengeResponse{
+			ID:          ch.ID,
+			Title:       ch.Title,
+			Description: ch.Description,
+			XPReward:    ch.XPReward,
+			Completed:   completedMap[ch.ID],
+		})
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func CompleteChallenge(c *gin.Context) {
