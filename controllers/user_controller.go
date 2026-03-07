@@ -124,7 +124,7 @@ func GetCurrentUser(c *gin.Context) {
 	var user models.User
 
 	if err := database.DB.
-		Select("id, name, email, credits").
+		Select("id, name, email, credits, xp").
 		Where("id = ?", userID.(uint)).
 		First(&user).Error; err != nil {
 
@@ -139,6 +139,7 @@ func GetCurrentUser(c *gin.Context) {
 		"name":    user.Name,
 		"email":   user.Email,
 		"credits": user.Credits,
+		"xp":      user.XP,
 	})
 }
 
