@@ -24,6 +24,7 @@ func main() {
 
 	routes.UserRoutes(r)
 	routes.PracticeRoutes(r)
+	routes.ChallengeRoutes(r)
 
 	r.Run()
 }
