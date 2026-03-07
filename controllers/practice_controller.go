@@ -169,3 +169,32 @@ func FinishPractice(c *gin.Context) {
 		"transcript": session.Transcript,
 	})
 }
+
+func GetPracticeSessions(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	var sessions []models.PracticeSession
+
+	err := database.DB.
+		Where("user_id = ?", userID).
+		Order("created_at desc").
+		Find(&sessions).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch practice sessions",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"sessions": sessions,
+	})
+}
