@@ -8,6 +8,8 @@ type User struct {
 	Email     string `gorm:"uniqueIndex;not null"`
 	Password  string `gorm:"not null"`
 	Credits   int    `gorm:"not null;default:1"`
+	XP        int    `gorm:"not null;default:0"`
+	Timezone  string `gorm:"default:'UTC'"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

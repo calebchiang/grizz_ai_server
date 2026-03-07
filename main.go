@@ -17,6 +17,7 @@ func main() {
 		&models.User{},
 		&models.PracticeSession{},
 		&models.PracticeMessage{},
+		&models.Challenge{},
 	)
 
 	r := gin.Default()
