@@ -165,5 +165,7 @@ func FinishPractice(c *gin.Context) {
 		"confidence":        session.Confidence,
 		"conversation_flow": session.ConversationFlow,
 		"social_awareness":  session.SocialAwareness,
+
+		"transcript": session.Transcript,
 	})
 }
