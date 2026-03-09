@@ -286,7 +286,6 @@ func GetWeeklyOverview(c *gin.Context) {
 		var practiceCount int64
 		var challengeCount int64
 
-		// Check practice sessions
 		database.DB.Model(&models.PracticeSession{}).
 			Where("user_id = ? AND created_at >= ? AND created_at < ?", userID, startOfDay, endOfDay).
 			Count(&practiceCount)
