@@ -227,3 +227,109 @@ func AddXP(c *gin.Context) {
 		"xp": user.XP,
 	})
 }
+
+func GetWeeklyOverview(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var user models.User
+	if err := database.DB.First(&user, userID.(uint)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Load timezone
+	location, err := time.LoadLocation(user.Timezone)
+	if err != nil {
+		location = time.UTC
+	}
+
+	now := time.Now().In(location)
+
+	// Start of week (Sunday)
+	weekday := int(now.Weekday())
+
+	weekStart := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day()-weekday,
+		0, 0, 0, 0,
+		location,
+	)
+
+	type DayStatus struct {
+		Day    string `json:"day"`
+		Date   string `json:"date"`
+		Status string `json:"status"`
+	}
+
+	var result []DayStatus
+
+	for i := 0; i < 7; i++ {
+
+		day := weekStart.AddDate(0, 0, i)
+
+		startOfDay := time.Date(
+			day.Year(),
+			day.Month(),
+			day.Day(),
+			0, 0, 0, 0,
+			location,
+		)
+
+		endOfDay := startOfDay.Add(24 * time.Hour)
+
+		var practiceCount int64
+		var challengeCount int64
+
+		// Check practice sessions
+		database.DB.Model(&models.PracticeSession{}).
+			Where("user_id = ? AND created_at >= ? AND created_at < ?", userID, startOfDay, endOfDay).
+			Count(&practiceCount)
+
+		// Check challenges
+		database.DB.Model(&models.ChallengeCompletion{}).
+			Where("user_id = ? AND date >= ? AND date < ?", userID, startOfDay, endOfDay).
+			Count(&challengeCount)
+
+		completed := practiceCount > 0 || challengeCount > 0
+
+		var status string
+
+		if day.After(now) {
+
+			status = "future"
+
+		} else if day.Year() == now.Year() &&
+			day.YearDay() == now.YearDay() {
+
+			if completed {
+				status = "completed"
+			} else {
+				status = "pending"
+			}
+
+		} else {
+
+			if completed {
+				status = "completed"
+			} else {
+				status = "uncompleted"
+			}
+		}
+
+		result = append(result, DayStatus{
+			Day:    day.Weekday().String(),
+			Date:   day.Format("2006-01-02"),
+			Status: status,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"week": result,
+	})
+}
