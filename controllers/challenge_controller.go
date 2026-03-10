@@ -183,7 +183,7 @@ func CompleteChallenge(c *gin.Context) {
 	completion := models.ChallengeCompletion{
 		UserID:      user.ID,
 		ChallengeID: body.ChallengeID,
-		Date:        time.Now().UTC(),
+		Date:        now,
 	}
 
 	if err := database.DB.Create(&completion).Error; err != nil {
