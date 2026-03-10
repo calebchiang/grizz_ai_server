@@ -125,7 +125,7 @@ func GetCurrentUser(c *gin.Context) {
 	var user models.User
 
 	if err := database.DB.
-		Select("id, name, email, credits, xp").
+		Select("id, name, email, credits, xp, current_streak, longest_streak").
 		Where("id = ?", userID.(uint)).
 		First(&user).Error; err != nil {
 
@@ -136,11 +136,13 @@ func GetCurrentUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":      user.ID,
-		"name":    user.Name,
-		"email":   user.Email,
-		"credits": user.Credits,
-		"xp":      user.XP,
+		"id":             user.ID,
+		"name":           user.Name,
+		"email":          user.Email,
+		"credits":        user.Credits,
+		"xp":             user.XP,
+		"current_streak": user.CurrentStreak,
+		"longest_streak": user.LongestStreak,
 	})
 }
 
