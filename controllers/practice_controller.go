@@ -155,6 +155,8 @@ func FinishPractice(c *gin.Context) {
 		return
 	}
 
+	services.UpdateUserStreak(userID.(uint))
+
 	c.JSON(http.StatusOK, gin.H{
 		"message":            "Practice session finished",
 		"duration_seconds":   duration,

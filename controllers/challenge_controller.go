@@ -7,6 +7,7 @@ import (
 
 	"github.com/calebchiang/thirdparty_server/database"
 	"github.com/calebchiang/thirdparty_server/models"
+	"github.com/calebchiang/thirdparty_server/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -197,6 +198,8 @@ func CompleteChallenge(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update XP"})
 		return
 	}
+
+	services.UpdateUserStreak(user.ID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"xp": user.XP,
