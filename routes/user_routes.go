@@ -17,5 +17,6 @@ func UserRoutes(r *gin.Engine) {
 		auth.PATCH("/name", controllers.UpdateUserName)
 		auth.POST("/xp", controllers.AddXP)
 		auth.GET("/weekly_overview", controllers.GetWeeklyOverview)
+		auth.GET("/recent_practice", controllers.GetRecentPractice)
 	}
 }

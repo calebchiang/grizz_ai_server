@@ -332,3 +332,88 @@ func GetWeeklyOverview(c *gin.Context) {
 		"week": result,
 	})
 }
+
+func GetRecentPractice(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var user models.User
+	if err := database.DB.First(&user, userID.(uint)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Load timezone
+	location, err := time.LoadLocation(user.Timezone)
+	if err != nil {
+		location = time.UTC
+	}
+
+	now := time.Now().In(location)
+
+	type DayStatus struct {
+		Label  string `json:"label"`
+		Date   string `json:"date"`
+		Status string `json:"status"`
+	}
+
+	var result []DayStatus
+
+	labels := []string{"today", "yesterday", "two_days_ago"}
+
+	for i := 0; i < 3; i++ {
+
+		day := now.AddDate(0, 0, -i)
+
+		startOfDay := time.Date(
+			day.Year(),
+			day.Month(),
+			day.Day(),
+			0, 0, 0, 0,
+			location,
+		)
+
+		endOfDay := startOfDay.Add(24 * time.Hour)
+
+		var practiceCount int64
+
+		database.DB.Model(&models.PracticeSession{}).
+			Where("user_id = ? AND created_at >= ? AND created_at < ?", userID, startOfDay, endOfDay).
+			Count(&practiceCount)
+
+		completed := practiceCount > 0
+
+		var status string
+
+		if i == 0 { // today
+
+			if completed {
+				status = "completed"
+			} else {
+				status = "pending"
+			}
+
+		} else {
+
+			if completed {
+				status = "completed"
+			} else {
+				status = "uncompleted"
+			}
+		}
+
+		result = append(result, DayStatus{
+			Label:  labels[i],
+			Date:   startOfDay.Format("2006-01-02"),
+			Status: status,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"recent": result,
+	})
+}
