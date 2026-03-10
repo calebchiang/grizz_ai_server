@@ -198,3 +198,59 @@ func GetPracticeSessions(c *gin.Context) {
 		"sessions": sessions,
 	})
 }
+
+func GetPracticeOverview(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	type SessionScore struct {
+		Score int `json:"score"`
+	}
+
+	var sessions []models.PracticeSession
+
+	err := database.DB.
+		Select("conversation_score, created_at").
+		Where("user_id = ? AND ended_at IS NOT NULL", userID).
+		Order("created_at desc").
+		Limit(30).
+		Find(&sessions).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch sessions",
+		})
+		return
+	}
+
+	// Reverse sessions to oldest → newest
+	for i, j := 0, len(sessions)-1; i < j; i, j = i+1, j-1 {
+		sessions[i], sessions[j] = sessions[j], sessions[i]
+	}
+
+	var scores []SessionScore
+	total := 0
+
+	for _, s := range sessions {
+		scores = append(scores, SessionScore{
+			Score: s.ConversationScore,
+		})
+		total += s.ConversationScore
+	}
+
+	average := 0
+	if len(scores) > 0 {
+		average = total / len(scores)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"average_score": average,
+		"sessions":      scores,
+	})
+}

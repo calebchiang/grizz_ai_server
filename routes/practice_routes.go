@@ -15,5 +15,7 @@ func PracticeRoutes(r *gin.Engine) {
 		auth.GET("/ws", controllers.PracticeSocket)
 		auth.POST("/finish", controllers.FinishPractice)
 		auth.GET("/sessions", controllers.GetPracticeSessions)
+		auth.GET("/practice_overview", controllers.GetPracticeOverview)
+
 	}
 }
