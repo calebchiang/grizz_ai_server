@@ -114,6 +114,7 @@ func LoginUser(c *gin.Context) {
 }
 
 func GetCurrentUser(c *gin.Context) {
+
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -125,7 +126,7 @@ func GetCurrentUser(c *gin.Context) {
 	var user models.User
 
 	if err := database.DB.
-		Select("id, name, email, credits, xp, current_streak, longest_streak").
+		Select("id, name, email, credits, xp, current_streak, longest_streak, timezone, last_activity_at").
 		Where("id = ?", userID.(uint)).
 		First(&user).Error; err != nil {
 
@@ -135,13 +136,57 @@ func GetCurrentUser(c *gin.Context) {
 		return
 	}
 
+	// -------------------------
+	// Compute display streak
+	// -------------------------
+
+	displayStreak := user.CurrentStreak
+
+	location, err := time.LoadLocation(user.Timezone)
+	if err != nil {
+		location = time.UTC
+	}
+
+	now := time.Now().In(location)
+
+	startOfToday := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		0, 0, 0, 0,
+		location,
+	)
+
+	startOfYesterday := startOfToday.Add(-24 * time.Hour)
+
+	if user.LastActivityAt != nil {
+
+		last := user.LastActivityAt.In(location)
+
+		lastDay := time.Date(
+			last.Year(),
+			last.Month(),
+			last.Day(),
+			0, 0, 0, 0,
+			location,
+		)
+
+		if lastDay.Before(startOfYesterday) {
+			displayStreak = 0
+		}
+	}
+
+	// -------------------------
+	// Response
+	// -------------------------
+
 	c.JSON(http.StatusOK, gin.H{
 		"id":             user.ID,
 		"name":           user.Name,
 		"email":          user.Email,
 		"credits":        user.Credits,
 		"xp":             user.XP,
-		"current_streak": user.CurrentStreak,
+		"current_streak": displayStreak,
 		"longest_streak": user.LongestStreak,
 	})
 }
