@@ -33,61 +33,48 @@ func UpdateUserStreak(userID uint) {
 
 	startOfYesterday := startOfToday.Add(-24 * time.Hour)
 
-	endOfToday := startOfToday.Add(24 * time.Hour)
-
 	// ------------------------------------------------
-	// Check if activity already existed today BEFORE this event
-	// (meaning streak already counted)
+	// If user has previous activity
 	// ------------------------------------------------
 
-	var practiceTodayCount int64
+	if user.LastActivityAt != nil {
 
-	database.DB.Model(&models.PracticeSession{}).
-		Where("user_id = ? AND created_at >= ? AND created_at < ?", userID, startOfToday, endOfToday).
-		Count(&practiceTodayCount)
+		last := user.LastActivityAt.In(location)
 
-	var challengeTodayCount int64
+		lastDay := time.Date(
+			last.Year(),
+			last.Month(),
+			last.Day(),
+			0, 0, 0, 0,
+			location,
+		)
 
-	database.DB.Model(&models.ChallengeCompletion{}).
-		Where("user_id = ? AND date >= ? AND date < ?", userID, startOfToday, endOfToday).
-		Count(&challengeTodayCount)
+		// Already counted today
+		if lastDay.Equal(startOfToday) {
+			return
+		}
 
-	// If more than 1 activity exists today, streak was already incremented
-	if practiceTodayCount+challengeTodayCount > 1 {
-		return
-	}
+		// Continue streak if yesterday
+		if lastDay.Equal(startOfYesterday) {
+			user.CurrentStreak++
+		} else {
+			// Streak broken
+			user.CurrentStreak = 1
+		}
 
-	// ------------------------------------------------
-	// Check if user had activity yesterday
-	// ------------------------------------------------
-
-	var practiceYesterdayCount int64
-
-	database.DB.Model(&models.PracticeSession{}).
-		Where("user_id = ? AND created_at >= ? AND created_at < ?", userID, startOfYesterday, startOfToday).
-		Count(&practiceYesterdayCount)
-
-	var challengeYesterdayCount int64
-
-	database.DB.Model(&models.ChallengeCompletion{}).
-		Where("user_id = ? AND date >= ? AND date < ?", userID, startOfYesterday, startOfToday).
-		Count(&challengeYesterdayCount)
-
-	hadActivityYesterday := practiceYesterdayCount+challengeYesterdayCount > 0
-
-	// ------------------------------------------------
-	// Update streak
-	// ------------------------------------------------
-
-	if hadActivityYesterday {
-		user.CurrentStreak++
 	} else {
+
+		// First ever activity
 		user.CurrentStreak = 1
 	}
 
+	// Update longest streak
 	if user.CurrentStreak > user.LongestStreak {
 		user.LongestStreak = user.CurrentStreak
 	}
+
+	// Update last activity time
+	user.LastActivityAt = &now
 
 	database.DB.Save(&user)
 }
