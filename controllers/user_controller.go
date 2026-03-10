@@ -417,3 +417,62 @@ func GetRecentPractice(c *gin.Context) {
 		"recent": result,
 	})
 }
+
+func GetPracticeChallengeOverview(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// -------- TOTAL PRACTICE --------
+
+	var totalPractice int64
+	database.DB.Model(&models.PracticeSession{}).
+		Where("user_id = ?", userID).
+		Count(&totalPractice)
+
+	// -------- TOTAL CHALLENGES --------
+
+	var totalChallenges int64
+	database.DB.Model(&models.ChallengeCompletion{}).
+		Where("user_id = ?", userID).
+		Count(&totalChallenges)
+
+	// -------- WEEKLY PRACTICE --------
+
+	type WeeklyCount struct {
+		Week  time.Time `json:"week"`
+		Count int       `json:"count"`
+	}
+
+	var weeklyPractice []WeeklyCount
+
+	database.DB.Raw(`
+		SELECT DATE_TRUNC('week', created_at) as week, COUNT(*) as count
+		FROM practice_sessions
+		WHERE user_id = ?
+		GROUP BY week
+		ORDER BY week
+	`, userID).Scan(&weeklyPractice)
+
+	// -------- WEEKLY CHALLENGES --------
+
+	var weeklyChallenges []WeeklyCount
+
+	database.DB.Raw(`
+		SELECT DATE_TRUNC('week', date) as week, COUNT(*) as count
+		FROM challenge_completions
+		WHERE user_id = ?
+		GROUP BY week
+		ORDER BY week
+	`, userID).Scan(&weeklyChallenges)
+
+	c.JSON(http.StatusOK, gin.H{
+		"total_practice":             totalPractice,
+		"total_challenges_completed": totalChallenges,
+		"weekly_practice_counts":     weeklyPractice,
+		"weekly_challenge_counts":    weeklyChallenges,
+	})
+}
