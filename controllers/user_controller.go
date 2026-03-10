@@ -502,6 +502,18 @@ func GetPracticeChallengeOverview(c *gin.Context) {
 		ORDER BY week
 	`, userID).Scan(&weeklyChallenges)
 
+	// -------- FIX: Prevent null arrays in JSON --------
+
+	if weeklyPractice == nil {
+		weeklyPractice = []WeeklyCount{}
+	}
+
+	if weeklyChallenges == nil {
+		weeklyChallenges = []WeeklyCount{}
+	}
+
+	// -------- RESPONSE --------
+
 	c.JSON(http.StatusOK, gin.H{
 		"total_practice":             totalPractice,
 		"total_challenges_completed": totalChallenges,

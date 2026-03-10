@@ -251,6 +251,11 @@ func GetPracticeOverview(c *gin.Context) {
 		average = total / len(scores)
 	}
 
+	// FIX: prevent null JSON array
+	if scores == nil {
+		scores = []SessionScore{}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"average_score": average,
 		"sessions":      scores,
