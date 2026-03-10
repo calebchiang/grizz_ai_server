@@ -133,8 +133,6 @@ func FinishPractice(c *gin.Context) {
 
 	if err != nil {
 
-		// If scoring fails we still finish the session
-		// but log the error for debugging
 		println("Failed to generate conversation result:", err.Error())
 
 	} else {
@@ -155,6 +153,29 @@ func FinishPractice(c *gin.Context) {
 		return
 	}
 
+	// ---------------------------
+	// ADD XP FOR PRACTICE
+	// ---------------------------
+
+	var user models.User
+
+	if err := database.DB.First(&user, userID.(uint)).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to load user",
+		})
+		return
+	}
+
+	user.XP += 50
+
+	if err := database.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update XP",
+		})
+		return
+	}
+
+	// Update streak
 	services.UpdateUserStreak(userID.(uint))
 
 	c.JSON(http.StatusOK, gin.H{
