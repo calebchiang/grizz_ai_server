@@ -426,21 +426,21 @@ func GetPracticeChallengeOverview(c *gin.Context) {
 		return
 	}
 
-	// -------- TOTAL PRACTICE --------
+	// -------- TOTAL PRACTICE (ALL TIME) --------
 
 	var totalPractice int64
 	database.DB.Model(&models.PracticeSession{}).
 		Where("user_id = ?", userID).
 		Count(&totalPractice)
 
-	// -------- TOTAL CHALLENGES --------
+	// -------- TOTAL CHALLENGES (ALL TIME) --------
 
 	var totalChallenges int64
 	database.DB.Model(&models.ChallengeCompletion{}).
 		Where("user_id = ?", userID).
 		Count(&totalChallenges)
 
-	// -------- WEEKLY PRACTICE --------
+	// -------- WEEKLY PRACTICE (LAST 4 WEEKS) --------
 
 	type WeeklyCount struct {
 		Week  time.Time `json:"week"`
@@ -450,21 +450,23 @@ func GetPracticeChallengeOverview(c *gin.Context) {
 	var weeklyPractice []WeeklyCount
 
 	database.DB.Raw(`
-		SELECT DATE_TRUNC('week', created_at) as week, COUNT(*) as count
+		SELECT DATE_TRUNC('week', created_at) AS week, COUNT(*) AS count
 		FROM practice_sessions
 		WHERE user_id = ?
+		AND created_at >= NOW() - INTERVAL '4 weeks'
 		GROUP BY week
 		ORDER BY week
 	`, userID).Scan(&weeklyPractice)
 
-	// -------- WEEKLY CHALLENGES --------
+	// -------- WEEKLY CHALLENGES (LAST 4 WEEKS) --------
 
 	var weeklyChallenges []WeeklyCount
 
 	database.DB.Raw(`
-		SELECT DATE_TRUNC('week', date) as week, COUNT(*) as count
+		SELECT DATE_TRUNC('week', date) AS week, COUNT(*) AS count
 		FROM challenge_completions
 		WHERE user_id = ?
+		AND date >= NOW() - INTERVAL '4 weeks'
 		GROUP BY week
 		ORDER BY week
 	`, userID).Scan(&weeklyChallenges)
