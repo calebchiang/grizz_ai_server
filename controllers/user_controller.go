@@ -440,6 +440,35 @@ func GetPracticeChallengeOverview(c *gin.Context) {
 		Where("user_id = ?", userID).
 		Count(&totalChallenges)
 
+	// -------- HIGHEST CONVERSATION SCORE --------
+
+	var highestScore int
+	database.DB.Model(&models.PracticeSession{}).
+		Where("user_id = ?", userID).
+		Select("COALESCE(MAX(conversation_score), 0)").
+		Scan(&highestScore)
+
+	// -------- DAYS PRACTICED THIS WEEK --------
+
+	var daysPracticedThisWeek int64
+	database.DB.Raw(`
+		SELECT COUNT(DISTINCT DATE(created_at))
+		FROM practice_sessions
+		WHERE user_id = ?
+		AND created_at >= DATE_TRUNC('week', NOW())
+	`, userID).Scan(&daysPracticedThisWeek)
+
+	// -------- DAYS PRACTICED LAST WEEK --------
+
+	var daysPracticedLastWeek int64
+	database.DB.Raw(`
+		SELECT COUNT(DISTINCT DATE(created_at))
+		FROM practice_sessions
+		WHERE user_id = ?
+		AND created_at >= DATE_TRUNC('week', NOW()) - INTERVAL '1 week'
+		AND created_at < DATE_TRUNC('week', NOW())
+	`, userID).Scan(&daysPracticedLastWeek)
+
 	// -------- WEEKLY PRACTICE (LAST 4 WEEKS) --------
 
 	type WeeklyCount struct {
@@ -474,7 +503,13 @@ func GetPracticeChallengeOverview(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"total_practice":             totalPractice,
 		"total_challenges_completed": totalChallenges,
-		"weekly_practice_counts":     weeklyPractice,
-		"weekly_challenge_counts":    weeklyChallenges,
+
+		"highest_conversation_score": highestScore,
+
+		"days_practiced_this_week": daysPracticedThisWeek,
+		"days_practiced_last_week": daysPracticedLastWeek,
+
+		"weekly_practice_counts":  weeklyPractice,
+		"weekly_challenge_counts": weeklyChallenges,
 	})
 }
