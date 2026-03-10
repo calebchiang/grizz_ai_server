@@ -16,6 +16,6 @@ func PracticeRoutes(r *gin.Engine) {
 		auth.POST("/finish", controllers.FinishPractice)
 		auth.GET("/sessions", controllers.GetPracticeSessions)
 		auth.GET("/practice_overview", controllers.GetPracticeOverview)
-
+		auth.GET("/skills_average", controllers.GetSkillsAverage)
 	}
 }

@@ -282,3 +282,45 @@ func GetPracticeOverview(c *gin.Context) {
 		"sessions":      scores,
 	})
 }
+
+func GetSkillsAverage(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	type SkillsAverage struct {
+		Clarity          float64 `json:"clarity"`
+		Engagement       float64 `json:"engagement"`
+		Confidence       float64 `json:"confidence"`
+		ConversationFlow float64 `json:"conversation_flow"`
+		SocialAwareness  float64 `json:"social_awareness"`
+	}
+
+	var result SkillsAverage
+
+	err := database.DB.
+		Model(&models.PracticeSession{}).
+		Select(`
+			AVG(clarity) as clarity,
+			AVG(engagement) as engagement,
+			AVG(confidence) as confidence,
+			AVG(conversation_flow) as conversation_flow,
+			AVG(social_awareness) as social_awareness
+		`).
+		Where("user_id = ? AND ended_at IS NOT NULL", userID).
+		Scan(&result).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to calculate skill averages",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
