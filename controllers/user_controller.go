@@ -331,18 +331,12 @@ func GetWeeklyOverview(c *gin.Context) {
 		endOfDay := startOfDay.Add(24 * time.Hour)
 
 		var practiceCount int64
-		var challengeCount int64
 
 		database.DB.Model(&models.PracticeSession{}).
 			Where("user_id = ? AND created_at >= ? AND created_at < ?", userID, startOfDay, endOfDay).
 			Count(&practiceCount)
 
-		// Check challenges
-		database.DB.Model(&models.ChallengeCompletion{}).
-			Where("user_id = ? AND date >= ? AND date < ?", userID, startOfDay, endOfDay).
-			Count(&challengeCount)
-
-		completed := practiceCount > 0 || challengeCount > 0
+		completed := practiceCount > 0
 
 		var status string
 
