@@ -252,10 +252,6 @@ func GetWeeklyOverview(c *gin.Context) {
 
 	now := time.Now().In(location)
 
-	println("----- WEEKLY OVERVIEW DEBUG -----")
-	println("User timezone:", user.Timezone)
-	println("Now:", now.String())
-
 	// Start of week (Sunday)
 	weekday := int(now.Weekday())
 
@@ -266,8 +262,6 @@ func GetWeeklyOverview(c *gin.Context) {
 		0, 0, 0, 0,
 		location,
 	)
-
-	println("Week start:", weekStart.String())
 
 	type DayStatus struct {
 		Day    string `json:"day"`
@@ -291,11 +285,6 @@ func GetWeeklyOverview(c *gin.Context) {
 
 		endOfDay := startOfDay.Add(24 * time.Hour)
 
-		println("-----")
-		println("Checking day:", day.String())
-		println("StartOfDay:", startOfDay.String())
-		println("EndOfDay:", endOfDay.String())
-
 		var practiceCount int64
 		var challengeCount int64
 
@@ -303,12 +292,10 @@ func GetWeeklyOverview(c *gin.Context) {
 			Where("user_id = ? AND created_at >= ? AND created_at < ?", userID, startOfDay, endOfDay).
 			Count(&practiceCount)
 
+		// Check challenges
 		database.DB.Model(&models.ChallengeCompletion{}).
 			Where("user_id = ? AND date >= ? AND date < ?", userID, startOfDay, endOfDay).
 			Count(&challengeCount)
-
-		println("PracticeCount:", practiceCount)
-		println("ChallengeCount:", challengeCount)
 
 		completed := practiceCount > 0 || challengeCount > 0
 
@@ -336,16 +323,12 @@ func GetWeeklyOverview(c *gin.Context) {
 			}
 		}
 
-		println("Status:", status)
-
 		result = append(result, DayStatus{
 			Day:    day.Weekday().String(),
 			Date:   day.Format("2006-01-02"),
 			Status: status,
 		})
 	}
-
-	println("----- END WEEKLY DEBUG -----")
 
 	c.JSON(http.StatusOK, gin.H{
 		"week": result,
