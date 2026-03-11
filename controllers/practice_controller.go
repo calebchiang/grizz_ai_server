@@ -49,7 +49,10 @@ func StartPractice(c *gin.Context) {
 		return
 	}
 
-	// Load user
+	// ---------------------------
+	// LOAD USER
+	// ---------------------------
+
 	var user models.User
 
 	if err := database.DB.First(&user, userID.(uint)).Error; err != nil {
@@ -59,15 +62,33 @@ func StartPractice(c *gin.Context) {
 		return
 	}
 
-	// Check credits
+	// ---------------------------
+	// CREDIT CHECK
+	// ---------------------------
+
 	if user.Credits <= 0 {
-		c.JSON(http.StatusPaymentRequired, gin.H{
-			"error": "No credits remaining",
-		})
+
+		// Premium user hit monthly limit
+		if user.IsPremium {
+			c.JSON(http.StatusPaymentRequired, gin.H{
+				"code":  "PREMIUM_LIMIT_REACHED",
+				"error": "Monthly usage limit reached",
+			})
+		} else {
+			// Free user ran out of credits
+			c.JSON(http.StatusPaymentRequired, gin.H{
+				"code":  "NO_CREDITS_FREE",
+				"error": "No credits remaining",
+			})
+		}
+
 		return
 	}
 
-	// Deduct credit
+	// ---------------------------
+	// DEDUCT CREDIT
+	// ---------------------------
+
 	user.Credits -= 1
 
 	if err := database.DB.Save(&user).Error; err != nil {
@@ -76,6 +97,10 @@ func StartPractice(c *gin.Context) {
 		})
 		return
 	}
+
+	// ---------------------------
+	// CREATE SESSION
+	// ---------------------------
 
 	session := models.PracticeSession{
 		UserID:    userID.(uint),
@@ -90,6 +115,10 @@ func StartPractice(c *gin.Context) {
 		})
 		return
 	}
+
+	// ---------------------------
+	// RESPONSE
+	// ---------------------------
 
 	c.JSON(http.StatusCreated, gin.H{
 		"session_id": session.ID,
