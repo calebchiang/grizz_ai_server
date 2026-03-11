@@ -26,6 +26,7 @@ func main() {
 	routes.UserRoutes(r)
 	routes.PracticeRoutes(r)
 	routes.ChallengeRoutes(r)
+	routes.RevenueCatRoutes(r)
 
 	r.Run()
 }

@@ -9,6 +9,7 @@ type User struct {
 	Password       string     `gorm:"not null"`
 	Credits        int        `gorm:"not null;default:1"`
 	XP             int        `gorm:"not null;default:0"`
+	IsPremium      bool       `gorm:"not null;default:false"`
 	Timezone       string     `gorm:"default:'UTC'"`
 	CurrentStreak  int        `gorm:"not null;default:0"`
 	LongestStreak  int        `gorm:"not null;default:0"`
