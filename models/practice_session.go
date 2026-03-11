@@ -1,10 +1,14 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/datatypes"
+)
 
 type PracticeSession struct {
 	ID              uint      `gorm:"primaryKey"`
-	UserID          uint      `gorm:"not null;index"` // FK -> users.id
+	UserID          uint      `gorm:"not null;index"`
 	Scenario        string    `gorm:"not null"`
 	Persona         string    `gorm:"not null"`
 	DurationSeconds int       `gorm:"not null;default:0"`
@@ -21,6 +25,9 @@ type PracticeSession struct {
 
 	// Final calculated score (0-100)
 	ConversationScore int `gorm:"default:0"`
+
+	Strengths  datatypes.JSON `gorm:"type:jsonb"`
+	Weaknesses datatypes.JSON `gorm:"type:jsonb"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

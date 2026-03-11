@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/calebchiang/thirdparty_server/models"
 	"github.com/calebchiang/thirdparty_server/services"
 	"github.com/gin-gonic/gin"
+	"gorm.io/datatypes"
 )
 
 func StartPractice(c *gin.Context) {
@@ -132,6 +134,9 @@ func FinishPractice(c *gin.Context) {
 	// Generate conversation result using OpenAI
 	result, err := services.GenerateConversationResult(transcript)
 
+	var strengths []string
+	var weaknesses []string
+
 	if err != nil {
 
 		println("Failed to generate conversation result:", err.Error())
@@ -145,6 +150,21 @@ func FinishPractice(c *gin.Context) {
 		session.SocialAwareness = result.Scores.SocialAwareness
 
 		session.ConversationScore = result.ConversationScore
+
+		strengths = result.Strengths
+		weaknesses = result.Weaknesses
+
+		// Convert strengths to JSON
+		strengthsJSON, err := json.Marshal(result.Strengths)
+		if err == nil {
+			session.Strengths = datatypes.JSON(strengthsJSON)
+		}
+
+		// Convert weaknesses to JSON
+		weaknessesJSON, err := json.Marshal(result.Weaknesses)
+		if err == nil {
+			session.Weaknesses = datatypes.JSON(weaknessesJSON)
+		}
 	}
 
 	if err := database.DB.Save(&session).Error; err != nil {
@@ -189,6 +209,9 @@ func FinishPractice(c *gin.Context) {
 		"confidence":        session.Confidence,
 		"conversation_flow": session.ConversationFlow,
 		"social_awareness":  session.SocialAwareness,
+
+		"strengths":  strengths,
+		"weaknesses": weaknesses,
 
 		"transcript": session.Transcript,
 	})

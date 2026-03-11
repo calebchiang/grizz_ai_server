@@ -17,9 +17,22 @@ type ConversationScores struct {
 	SocialAwareness  int `json:"social_awareness"`
 }
 
+// INTERNAL struct used only to parse AI response
+type aiConversationResponse struct {
+	Clarity          int      `json:"clarity"`
+	Engagement       int      `json:"engagement"`
+	Confidence       int      `json:"confidence"`
+	ConversationFlow int      `json:"conversation_flow"`
+	SocialAwareness  int      `json:"social_awareness"`
+	Strengths        []string `json:"strengths"`
+	Weaknesses       []string `json:"weaknesses"`
+}
+
 type ConversationResult struct {
 	Scores            ConversationScores
 	ConversationScore int
+	Strengths         []string
+	Weaknesses        []string
 }
 
 func buildScoringPrompt(transcript string) string {
@@ -58,6 +71,14 @@ How naturally and smoothly the conversation progresses with the user.
 Social Awareness
 How well the user responds appropriately to the context, tone, and social cues of the conversation.
 
+After scoring, also provide feedback.
+
+Strengths:
+Provide exactly 3 bullet points describing things the user did well.
+
+Weaknesses:
+Provide exactly 3 bullet points giving practical advice on how the user could improve their conversation.
+
 Return ONLY valid JSON in this exact format:
 
 {
@@ -65,10 +86,25 @@ Return ONLY valid JSON in this exact format:
  "engagement": number,
  "confidence": number,
  "conversation_flow": number,
- "social_awareness": number
+ "social_awareness": number,
+ "strengths": [
+   "string",
+   "string",
+   "string"
+ ],
+ "weaknesses": [
+   "string",
+   "string",
+   "string"
+ ]
 }
 
-Do NOT include any explanation or text outside the JSON.
+Rules:
+- strengths must contain exactly 3 points
+- weaknesses must contain exactly 3 points
+- each point must be one sentence
+- weaknesses must contain practical communication advice
+- return ONLY JSON
 
 Transcript:
 %s
@@ -89,7 +125,7 @@ func GenerateConversationResult(transcript string) (*ConversationResult, error) 
 		openai.ChatCompletionRequest{
 			Model:       openai.GPT4oMini,
 			Temperature: 0,
-			MaxTokens:   120,
+			MaxTokens:   300,
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleSystem,
@@ -108,14 +144,22 @@ func GenerateConversationResult(transcript string) (*ConversationResult, error) 
 	}
 
 	content := resp.Choices[0].Message.Content
-
 	content = strings.TrimSpace(content)
 
-	var scores ConversationScores
+	var aiResp aiConversationResponse
 
-	err = json.Unmarshal([]byte(content), &scores)
+	err = json.Unmarshal([]byte(content), &aiResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse AI scoring response: %v\nResponse: %s", err, content)
+	}
+
+	// Convert to existing score struct (no logic changed)
+	scores := ConversationScores{
+		Clarity:          aiResp.Clarity,
+		Engagement:       aiResp.Engagement,
+		Confidence:       aiResp.Confidence,
+		ConversationFlow: aiResp.ConversationFlow,
+		SocialAwareness:  aiResp.SocialAwareness,
 	}
 
 	// Calculate overall conversation score (0-100)
@@ -130,6 +174,8 @@ func GenerateConversationResult(transcript string) (*ConversationResult, error) 
 	result := ConversationResult{
 		Scores:            scores,
 		ConversationScore: conversationScore,
+		Strengths:         aiResp.Strengths,
+		Weaknesses:        aiResp.Weaknesses,
 	}
 
 	return &result, nil
