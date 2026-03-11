@@ -49,6 +49,34 @@ func StartPractice(c *gin.Context) {
 		return
 	}
 
+	// Load user
+	var user models.User
+
+	if err := database.DB.First(&user, userID.(uint)).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to load user",
+		})
+		return
+	}
+
+	// Check credits
+	if user.Credits <= 0 {
+		c.JSON(http.StatusPaymentRequired, gin.H{
+			"error": "No credits remaining",
+		})
+		return
+	}
+
+	// Deduct credit
+	user.Credits -= 1
+
+	if err := database.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update credits",
+		})
+		return
+	}
+
 	session := models.PracticeSession{
 		UserID:    userID.(uint),
 		Scenario:  input.Scenario,
@@ -68,6 +96,7 @@ func StartPractice(c *gin.Context) {
 		"scenario":   session.Scenario,
 		"persona":    session.Persona,
 		"started_at": session.StartedAt,
+		"credits":    user.Credits,
 	})
 }
 
