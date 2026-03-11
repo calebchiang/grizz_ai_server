@@ -71,13 +71,22 @@ How naturally and smoothly the conversation progresses with the user.
 Social Awareness
 How well the user responds appropriately to the context, tone, and social cues of the conversation.
 
-After scoring, also provide feedback.
+After scoring, also provide feedback. 
+
+IMPORTANT:
+Write the feedback as if you are speaking directly to the person being evaluated.
+
+Use second-person language such as:
+- "You did a good job..."
+
+DO NOT refer to them as "the user".
+Always refer to them as "you".
 
 Strengths:
-Provide exactly 3 bullet points describing things the user did well.
+Provide exactly 3 bullet points describing things the person did well in the conversation.
 
 Weaknesses:
-Provide exactly 3 bullet points giving practical advice on how the user could improve their conversation.
+Provide exactly 3 bullet points with practical advice on how the person could improve their conversation.
 
 Return ONLY valid JSON in this exact format:
 
