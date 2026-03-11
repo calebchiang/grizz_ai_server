@@ -255,63 +255,8 @@ func GetPracticeSessions(c *gin.Context) {
 		return
 	}
 
-	// Response struct so we can decode JSON fields
-	type PracticeSessionResponse struct {
-		ID                uint       `json:"id"`
-		Scenario          string     `json:"scenario"`
-		Persona           string     `json:"persona"`
-		DurationSeconds   int        `json:"duration_seconds"`
-		StartedAt         time.Time  `json:"started_at"`
-		EndedAt           *time.Time `json:"ended_at"`
-		ConversationScore int        `json:"conversation_score"`
-
-		Clarity          int `json:"clarity"`
-		Engagement       int `json:"engagement"`
-		Confidence       int `json:"confidence"`
-		ConversationFlow int `json:"conversation_flow"`
-		SocialAwareness  int `json:"social_awareness"`
-
-		Strengths  []string `json:"strengths"`
-		Weaknesses []string `json:"weaknesses"`
-	}
-
-	var response []PracticeSessionResponse
-
-	for _, s := range sessions {
-
-		var strengths []string
-		var weaknesses []string
-
-		if len(s.Strengths) > 0 {
-			json.Unmarshal(s.Strengths, &strengths)
-		}
-
-		if len(s.Weaknesses) > 0 {
-			json.Unmarshal(s.Weaknesses, &weaknesses)
-		}
-
-		response = append(response, PracticeSessionResponse{
-			ID:                s.ID,
-			Scenario:          s.Scenario,
-			Persona:           s.Persona,
-			DurationSeconds:   s.DurationSeconds,
-			StartedAt:         s.StartedAt,
-			EndedAt:           s.EndedAt,
-			ConversationScore: s.ConversationScore,
-
-			Clarity:          s.Clarity,
-			Engagement:       s.Engagement,
-			Confidence:       s.Confidence,
-			ConversationFlow: s.ConversationFlow,
-			SocialAwareness:  s.SocialAwareness,
-
-			Strengths:  strengths,
-			Weaknesses: weaknesses,
-		})
-	}
-
 	c.JSON(http.StatusOK, gin.H{
-		"sessions": response,
+		"sessions": sessions,
 		"page":     page,
 	})
 }
