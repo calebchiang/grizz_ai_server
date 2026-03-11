@@ -23,7 +23,7 @@ func RevenueCatWebhook(c *gin.Context) {
 
 	// Parse webhook payload
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		fmt.Println("❌ Failed to parse RevenueCat webhook:", err)
+		fmt.Println("Failed to parse RevenueCat webhook:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid webhook payload"})
 		return
 	}
