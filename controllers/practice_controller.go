@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/calebchiang/thirdparty_server/database"
@@ -203,11 +204,25 @@ func GetPracticeSessions(c *gin.Context) {
 		return
 	}
 
+	page := 1
+	limit := 8
+
+	// Read page query param
+	if p := c.Query("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+
+	offset := (page - 1) * limit
+
 	var sessions []models.PracticeSession
 
 	err := database.DB.
 		Where("user_id = ?", userID).
 		Order("created_at desc").
+		Limit(limit).
+		Offset(offset).
 		Find(&sessions).Error
 
 	if err != nil {
@@ -219,6 +234,7 @@ func GetPracticeSessions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"sessions": sessions,
+		"page":     page,
 	})
 }
 
