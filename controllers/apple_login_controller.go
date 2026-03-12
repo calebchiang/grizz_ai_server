@@ -29,10 +29,6 @@ func AppleLogin(c *gin.Context) {
 		return
 	}
 
-	// -----------------------------
-	// Fetch Apple public keys
-	// -----------------------------
-
 	keys, err := fetchApplePublicKeys()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch Apple keys"})
