@@ -21,6 +21,7 @@ func CreateUser(c *gin.Context) {
 		Password  string `json:"password"`
 		HeardFrom string `json:"heardFrom"`
 		AgeGroup  string `json:"ageGroup"`
+		Timezone  string `json:"timezone"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -46,6 +47,11 @@ func CreateUser(c *gin.Context) {
 
 	heardFrom := strings.ToLower(strings.TrimSpace(input.HeardFrom))
 	ageGroup := strings.TrimSpace(input.AgeGroup)
+	timezone := strings.TrimSpace(input.Timezone)
+
+	if timezone == "" {
+		timezone = "UTC"
+	}
 
 	user := models.User{
 		Name:      strings.TrimSpace(input.Name),
@@ -53,6 +59,7 @@ func CreateUser(c *gin.Context) {
 		Password:  string(hashedPassword),
 		HeardFrom: heardFrom,
 		AgeGroup:  ageGroup,
+		Timezone:  timezone,
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {

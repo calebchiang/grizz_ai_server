@@ -25,6 +25,7 @@ func AppleLogin(c *gin.Context) {
 		Name          string `json:"name"`
 		HeardFrom     string `json:"heardFrom"`
 		AgeGroup      string `json:"ageGroup"`
+		Timezone      string `json:"timezone"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil || input.IdentityToken == "" {
@@ -73,6 +74,11 @@ func AppleLogin(c *gin.Context) {
 
 	heardFrom := strings.ToLower(strings.TrimSpace(input.HeardFrom))
 	ageGroup := strings.TrimSpace(input.AgeGroup)
+	timezone := strings.TrimSpace(input.Timezone)
+
+	if timezone == "" {
+		timezone = "UTC"
+	}
 
 	if email == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email not found in token"})
@@ -103,6 +109,7 @@ func AppleLogin(c *gin.Context) {
 				Password:  "",
 				HeardFrom: heardFrom,
 				AgeGroup:  ageGroup,
+				Timezone:  timezone,
 			}
 
 			if err := database.DB.Create(&user).Error; err != nil {
