@@ -86,15 +86,10 @@ func AppleLogin(c *gin.Context) {
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 
-			name := strings.TrimSpace(input.Name)
-			if name == "" {
-				name = "Apple User"
-			}
-
 			user = models.User{
-				Name:     name,
+				Name:     "",
 				Email:    email,
-				Password: "apple_login",
+				Password: "",
 			}
 
 			if err := database.DB.Create(&user).Error; err != nil {
