@@ -23,6 +23,8 @@ func AppleLogin(c *gin.Context) {
 	var input struct {
 		IdentityToken string `json:"identityToken"`
 		Name          string `json:"name"`
+		HeardFrom     string `json:"heardFrom"`
+		AgeGroup      string `json:"ageGroup"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil || input.IdentityToken == "" {
@@ -69,6 +71,9 @@ func AppleLogin(c *gin.Context) {
 	email, _ := claims["email"].(string)
 	email = strings.ToLower(strings.TrimSpace(email))
 
+	heardFrom := strings.ToLower(strings.TrimSpace(input.HeardFrom))
+	ageGroup := strings.TrimSpace(input.AgeGroup)
+
 	if email == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email not found in token"})
 		return
@@ -93,9 +98,11 @@ func AppleLogin(c *gin.Context) {
 			}
 
 			user = models.User{
-				Name:     name,
-				Email:    email,
-				Password: "",
+				Name:      name,
+				Email:     email,
+				Password:  "",
+				HeardFrom: heardFrom,
+				AgeGroup:  ageGroup,
 			}
 
 			if err := database.DB.Create(&user).Error; err != nil {

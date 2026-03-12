@@ -13,6 +13,8 @@ type User struct {
 	Timezone       string     `gorm:"default:'UTC'"`
 	CurrentStreak  int        `gorm:"not null;default:0"`
 	LongestStreak  int        `gorm:"not null;default:0"`
+	HeardFrom      string     `gorm:"type:varchar(50)"`
+	AgeGroup       string     `gorm:"type:varchar(20)"`
 	LastActivityAt *time.Time `gorm:"index"`
 	CreatedAt      time.Time
 	UpdatedAt      time.Time

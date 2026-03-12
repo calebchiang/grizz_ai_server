@@ -16,9 +16,11 @@ import (
 
 func CreateUser(c *gin.Context) {
 	var input struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Name      string `json:"name"`
+		Email     string `json:"email"`
+		Password  string `json:"password"`
+		HeardFrom string `json:"heardFrom"`
+		AgeGroup  string `json:"ageGroup"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -42,10 +44,15 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	heardFrom := strings.ToLower(strings.TrimSpace(input.HeardFrom))
+	ageGroup := strings.TrimSpace(input.AgeGroup)
+
 	user := models.User{
-		Name:     input.Name,
-		Email:    email,
-		Password: string(hashedPassword),
+		Name:      strings.TrimSpace(input.Name),
+		Email:     email,
+		Password:  string(hashedPassword),
+		HeardFrom: heardFrom,
+		AgeGroup:  ageGroup,
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
