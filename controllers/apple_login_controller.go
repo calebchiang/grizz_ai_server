@@ -15,6 +15,7 @@ import (
 	"github.com/calebchiang/thirdparty_server/models"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 )
 
 func AppleLogin(c *gin.Context) {
@@ -83,17 +84,9 @@ func AppleLogin(c *gin.Context) {
 
 	if err != nil {
 
-		if err == database.DB.Error {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
-			return
-		}
-
-		if err.Error() != "record not found" {
-
-			// Create new user
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 
 			name := strings.TrimSpace(input.Name)
-
 			if name == "" {
 				name = "Apple User"
 			}
@@ -108,6 +101,11 @@ func AppleLogin(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 				return
 			}
+
+		} else {
+
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			return
 		}
 	}
 
