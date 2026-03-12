@@ -86,8 +86,14 @@ func AppleLogin(c *gin.Context) {
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 
+			name := strings.TrimSpace(input.Name)
+
+			if name == "" {
+				name = "User"
+			}
+
 			user = models.User{
-				Name:     "",
+				Name:     name,
 				Email:    email,
 				Password: "",
 			}
