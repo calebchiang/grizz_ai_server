@@ -567,3 +567,27 @@ func GetPracticeChallengeOverview(c *gin.Context) {
 		"weekly_challenge_counts": weeklyChallenges,
 	})
 }
+
+func DeleteUser(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	if err := database.DB.
+		Delete(&models.User{}, userID.(uint)).Error; err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to delete user",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User deleted successfully",
+	})
+}

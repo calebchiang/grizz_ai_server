@@ -20,5 +20,6 @@ func UserRoutes(r *gin.Engine) {
 		auth.GET("/weekly_overview", controllers.GetWeeklyOverview)
 		auth.GET("/recent_practice", controllers.GetRecentPractice)
 		auth.GET("/practice_challenge_overview", controllers.GetPracticeChallengeOverview)
+		auth.DELETE("/me", controllers.DeleteUser)
 	}
 }
