@@ -606,3 +606,28 @@ func DeleteUser(c *gin.Context) {
 		"message": "User deleted successfully",
 	})
 }
+
+func MarkSeenOnboarding(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	if err := database.DB.Model(&models.User{}).
+		Where("id = ?", userID.(uint)).
+		Update("seen_onboarding", true).Error; err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update onboarding status",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"seen_onboarding": true,
+	})
+}
