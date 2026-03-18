@@ -21,7 +21,7 @@ func UserRoutes(r *gin.Engine) {
 		auth.GET("/recent_practice", controllers.GetRecentPractice)
 		auth.GET("/practice_challenge_overview", controllers.GetPracticeChallengeOverview)
 		auth.POST("/seen_onboarding", controllers.MarkSeenOnboarding)
-		auth.POST("/seen_ai_data_disclosure", controllers.MarkSeenAIDataDisclosure)
+		auth.POST("/seen_data_disclosure", controllers.MarkSeenDataDisclosure)
 		auth.DELETE("/me", controllers.DeleteUser)
 	}
 }
