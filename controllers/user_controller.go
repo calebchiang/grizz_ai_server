@@ -140,7 +140,7 @@ func GetCurrentUser(c *gin.Context) {
 	var user models.User
 
 	if err := database.DB.
-		Select("id, name, email, credits, xp, is_premium, seen_onboarding, current_streak, longest_streak, timezone, last_activity_at").
+		Select("id, name, email, credits, xp, is_premium, seen_onboarding, seen_ai_data_disclosure, current_streak, longest_streak, timezone, last_activity_at").
 		Where("id = ?", userID.(uint)).
 		First(&user).Error; err != nil {
 
@@ -195,15 +195,16 @@ func GetCurrentUser(c *gin.Context) {
 	// -------------------------
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":              user.ID,
-		"name":            user.Name,
-		"email":           user.Email,
-		"credits":         user.Credits,
-		"xp":              user.XP,
-		"is_premium":      user.IsPremium,
-		"seen_onboarding": user.SeenOnboarding,
-		"current_streak":  displayStreak,
-		"longest_streak":  user.LongestStreak,
+		"id":                      user.ID,
+		"name":                    user.Name,
+		"email":                   user.Email,
+		"credits":                 user.Credits,
+		"xp":                      user.XP,
+		"is_premium":              user.IsPremium,
+		"seen_onboarding":         user.SeenOnboarding,
+		"seen_ai_data_disclosure": user.SeenAIDataDisclosure,
+		"current_streak":          displayStreak,
+		"longest_streak":          user.LongestStreak,
 	})
 }
 
@@ -629,5 +630,30 @@ func MarkSeenOnboarding(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"seen_onboarding": true,
+	})
+}
+
+func MarkSeenAIDataDisclosure(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	if err := database.DB.Model(&models.User{}).
+		Where("id = ?", userID.(uint)).
+		Update("seen_ai_data_disclosure", true).Error; err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update AI data disclosure status",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"seen_ai_data_disclosure": true,
 	})
 }
