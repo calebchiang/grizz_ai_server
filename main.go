@@ -20,6 +20,7 @@ func main() {
 		&models.Challenge{},
 		&models.ChallengeCompletion{},
 		&models.Topic{},
+		&models.SpeakingDrill{},
 	)
 
 	r := gin.Default()
@@ -29,6 +30,7 @@ func main() {
 	routes.ChallengeRoutes(r)
 	routes.RevenueCatRoutes(r)
 	routes.TopicRoutes(r)
+	routes.SpeakingDrillRoutes(r)
 
 	r.Run()
 }
