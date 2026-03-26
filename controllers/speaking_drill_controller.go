@@ -2,11 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/calebchiang/thirdparty_server/database"
 	"github.com/calebchiang/thirdparty_server/models"
-	"github.com/calebchiang/thirdparty_server/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,50 +18,36 @@ func StartSpeakingDrill(c *gin.Context) {
 		return
 	}
 
-	topic := c.PostForm("topic")
+	var input struct {
+		Topic      string `json:"topic"`
+		Transcript string `json:"transcript"`
+	}
 
-	if topic == "" {
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	if input.Topic == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Topic is required",
 		})
 		return
 	}
 
-	file, err := c.FormFile("audio")
-	if err != nil {
+	if input.Transcript == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Audio file is required",
+			"error": "Transcript is required",
 		})
 		return
 	}
-
-	// create temp file path
-	tempPath := "./tmp/" + file.Filename
-
-	// save uploaded file
-	if err := c.SaveUploadedFile(file, tempPath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to save audio file",
-		})
-		return
-	}
-
-	// transcribe audio
-	transcript, err := services.TranscribeAudio(tempPath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to transcribe audio",
-		})
-		return
-	}
-
-	// remove temp file after transcription
-	os.Remove(tempPath)
 
 	drill := models.SpeakingDrill{
 		UserID:     userID.(uint),
-		Topic:      topic,
-		Transcript: transcript,
+		Topic:      input.Topic,
+		Transcript: input.Transcript,
 	}
 
 	if err := database.DB.Create(&drill).Error; err != nil {
