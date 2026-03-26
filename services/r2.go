@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"mime/multipart"
@@ -24,10 +23,7 @@ func UploadVideoToR2(file *multipart.FileHeader) (string, error) {
 	}
 	defer src.Close()
 
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(src)
-
-	filename := fmt.Sprintf("drills/%d-%s.mp4", time.Now().Unix(), uuid.New())
+	filename := fmt.Sprintf("drills/%d-%s.mov", time.Now().Unix(), uuid.New())
 
 	accessKey := os.Getenv("R2_ACCESS_KEY")
 	secretKey := os.Getenv("R2_SECRET_KEY")
@@ -56,9 +52,10 @@ func UploadVideoToR2(file *multipart.FileHeader) (string, error) {
 	})
 
 	_, err = client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(filename),
-		Body:   bytes.NewReader(buf.Bytes()),
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(filename),
+		Body:        src, // <-- STREAMING HERE
+		ContentType: aws.String("video/quicktime"),
 	})
 
 	if err != nil {
