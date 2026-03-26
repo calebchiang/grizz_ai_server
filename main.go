@@ -31,6 +31,7 @@ func main() {
 	routes.RevenueCatRoutes(r)
 	routes.TopicRoutes(r)
 	routes.SpeakingDrillRoutes(r)
+	routes.VideoRoutes(r)
 
 	r.Run()
 }
