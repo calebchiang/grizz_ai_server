@@ -198,6 +198,9 @@ func GenerateDrillResult(topic string, transcript string) (*DrillResult, error) 
 			Model:       openai.GPT4oMini,
 			Temperature: 0,
 			MaxTokens:   400,
+			ResponseFormat: &openai.ChatCompletionResponseFormat{
+				Type: openai.ChatCompletionResponseFormatTypeJSONObject,
+			},
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleSystem,
@@ -223,9 +226,6 @@ func GenerateDrillResult(topic string, transcript string) (*DrillResult, error) 
 	content = strings.TrimPrefix(content, "```")
 	content = strings.TrimSuffix(content, "```")
 	content = strings.TrimSpace(content)
-
-	fmt.Println("AI RAW RESPONSE:")
-	fmt.Println(content)
 
 	fmt.Println("AI RAW RESPONSE:")
 	fmt.Println(content)
