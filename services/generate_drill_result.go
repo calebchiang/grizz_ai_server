@@ -22,6 +22,12 @@ type FillerWord struct {
 	Count int    `json:"count"`
 }
 
+type PhraseReplacement struct {
+	Original    string `json:"original"`
+	Replacement string `json:"replacement"`
+	Reason      string `json:"reason"`
+}
+
 // INTERNAL struct used only to parse AI response
 type aiDrillResponse struct {
 	Clarity      int `json:"clarity"`
@@ -32,9 +38,10 @@ type aiDrillResponse struct {
 
 	FillerWords []FillerWord `json:"filler_words"`
 
-	Strengths           []string `json:"strengths"`
-	Weaknesses          []string `json:"weaknesses"`
-	PhrasesToUseInstead []string `json:"phrases_to_use_instead"`
+	Strengths  []string `json:"strengths"`
+	Weaknesses []string `json:"weaknesses"`
+
+	PhraseReplacements []PhraseReplacement `json:"phrase_replacements"`
 }
 
 type DrillResult struct {
@@ -43,9 +50,10 @@ type DrillResult struct {
 
 	FillerWords []FillerWord
 
-	Strengths           []string
-	Weaknesses          []string
-	PhrasesToUseInstead []string
+	Strengths  []string
+	Weaknesses []string
+
+	PhraseReplacements []PhraseReplacement
 }
 
 func buildDrillPrompt(topic string, transcript string) string {
@@ -97,20 +105,37 @@ Provide exactly 3 bullet points describing things the speaker did well.
 Weaknesses:
 Provide exactly 3 bullet points with practical speaking advice.
 
-Phrases_to_use_instead:
-List up to 5 phrases used and provide better alternatives.
+Phrase_replacements:
+Identify phrases from the transcript that could be improved.
+
+Return them as objects containing:
+- original: the phrase from the transcript
+- replacement: a stronger or clearer way to say it
+- reason: a short explanation why the replacement is better
+
+Example:
+
+[
+ {
+   "original": "I was like really nervous",
+   "replacement": "I felt nervous at first",
+   "reason": "This removes filler language and sounds more confident."
+ }
+]
+
+Provide up to 5 phrase replacements.
 
 Filler_words:
-Identify the filler words used and count how many times each appears in the transcript.
+Identify filler words used and count how many times each appears.
 
-Return them in this format:
+Example:
 
 [
  { "word": "um", "count": 3 },
  { "word": "like", "count": 2 }
 ]
 
-If no filler words are present return: []
+If no filler words exist return: []
 
 Return ONLY valid JSON in this exact format:
 
@@ -133,9 +158,12 @@ Return ONLY valid JSON in this exact format:
    "string",
    "string"
  ],
- "phrases_to_use_instead": [
-   "string",
-   "string"
+ "phrase_replacements": [
+   {
+     "original": "string",
+     "replacement": "string",
+     "reason": "string"
+   }
  ]
 }
 
@@ -205,7 +233,6 @@ func GenerateDrillResult(topic string, transcript string) (*DrillResult, error) 
 		Structure:    aiResp.Structure,
 	}
 
-	// Convert 0–50 scale to 0–100 score
 	total := scores.Clarity +
 		scores.Articulation +
 		scores.FillerRate +
@@ -215,12 +242,12 @@ func GenerateDrillResult(topic string, transcript string) (*DrillResult, error) 
 	speakingScore := int(float64(total) / 50.0 * 100.0)
 
 	result := DrillResult{
-		Scores:              scores,
-		SpeakingScore:       speakingScore,
-		FillerWords:         aiResp.FillerWords,
-		Strengths:           aiResp.Strengths,
-		Weaknesses:          aiResp.Weaknesses,
-		PhrasesToUseInstead: aiResp.PhrasesToUseInstead,
+		Scores:             scores,
+		SpeakingScore:      speakingScore,
+		FillerWords:        aiResp.FillerWords,
+		Strengths:          aiResp.Strengths,
+		Weaknesses:         aiResp.Weaknesses,
+		PhraseReplacements: aiResp.PhraseReplacements,
 	}
 
 	return &result, nil
