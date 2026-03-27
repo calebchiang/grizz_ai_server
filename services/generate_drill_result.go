@@ -197,7 +197,7 @@ func GenerateDrillResult(topic string, transcript string) (*DrillResult, error) 
 		openai.ChatCompletionRequest{
 			Model:       openai.GPT4oMini,
 			Temperature: 0,
-			MaxTokens:   400,
+			MaxTokens:   1000,
 			ResponseFormat: &openai.ChatCompletionResponseFormat{
 				Type: openai.ChatCompletionResponseFormatTypeJSONObject,
 			},
