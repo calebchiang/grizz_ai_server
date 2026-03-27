@@ -218,6 +218,9 @@ func GenerateDrillResult(topic string, transcript string) (*DrillResult, error) 
 	content := resp.Choices[0].Message.Content
 	content = strings.TrimSpace(content)
 
+	fmt.Println("AI RAW RESPONSE:")
+	fmt.Println(content)
+
 	var aiResp aiDrillResponse
 
 	err = json.Unmarshal([]byte(content), &aiResp)
