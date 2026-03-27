@@ -139,20 +139,21 @@ func GetChallengeStatus(c *gin.Context) {
 	currentDay := streak + 1
 
 	// Completed days this month
+	completedDaysMap := map[int]bool{}
+
+	for _, drill := range drills {
+
+		local := drill.CreatedAt.In(loc)
+
+		if local.Month() == now.Month() && local.Year() == now.Year() {
+			completedDaysMap[local.Day()] = true
+		}
+	}
+
 	completedDays := []int{}
 
-	for day := range completed {
-
-		parsed, err := time.Parse("2006-01-02", day)
-		if err != nil {
-			continue
-		}
-
-		parsed = parsed.In(loc)
-
-		if parsed.Month() == now.Month() && parsed.Year() == now.Year() {
-			completedDays = append(completedDays, parsed.Day())
-		}
+	for day := range completedDaysMap {
+		completedDays = append(completedDays, day)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
