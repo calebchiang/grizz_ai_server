@@ -64,7 +64,7 @@ func StartSpeakingDrill(c *gin.Context) {
 	fillerWordsJSON, _ := json.Marshal(result.FillerWords)
 	strengthsJSON, _ := json.Marshal(result.Strengths)
 	weaknessesJSON, _ := json.Marshal(result.Weaknesses)
-	phrasesJSON, _ := json.Marshal(result.PhrasesToUseInstead)
+	phrasesJSON, _ := json.Marshal(result.PhraseReplacements)
 
 	// -------- CREATE DRILL --------
 
