@@ -17,6 +17,11 @@ type SpeakingScores struct {
 	Structure    int `json:"structure"`
 }
 
+type FillerWord struct {
+	Word  string `json:"word"`
+	Count int    `json:"count"`
+}
+
 // INTERNAL struct used only to parse AI response
 type aiDrillResponse struct {
 	Clarity      int `json:"clarity"`
@@ -25,7 +30,7 @@ type aiDrillResponse struct {
 	Pace         int `json:"pace"`
 	Structure    int `json:"structure"`
 
-	FillerWords []string `json:"filler_words"`
+	FillerWords []FillerWord `json:"filler_words"`
 
 	Strengths           []string `json:"strengths"`
 	Weaknesses          []string `json:"weaknesses"`
@@ -36,7 +41,7 @@ type DrillResult struct {
 	Scores        SpeakingScores
 	SpeakingScore int
 
-	FillerWords []string
+	FillerWords []FillerWord
 
 	Strengths           []string
 	Weaknesses          []string
@@ -96,7 +101,16 @@ Phrases_to_use_instead:
 List up to 5 phrases used and provide better alternatives.
 
 Filler_words:
-List the filler words the speaker used. If no filler words, just return empty array: []
+Identify the filler words used and count how many times each appears in the transcript.
+
+Return them in this format:
+
+[
+ { "word": "um", "count": 3 },
+ { "word": "like", "count": 2 }
+]
+
+If no filler words are present return: []
 
 Return ONLY valid JSON in this exact format:
 
@@ -106,7 +120,9 @@ Return ONLY valid JSON in this exact format:
  "filler_rate": number,
  "pace": number,
  "structure": number,
- "filler_words": ["word"],
+ "filler_words": [
+   { "word": "string", "count": number }
+ ],
  "strengths": [
    "string",
    "string",
@@ -127,6 +143,8 @@ Rules:
 - strengths must contain exactly 3 points
 - weaknesses must contain exactly 3 points
 - each point must be one sentence
+- filler_words must always be an array
+- if none exist return []
 - return ONLY JSON
 
 Topic:
