@@ -139,7 +139,7 @@ func GetChallengeStatus(c *gin.Context) {
 	currentDay := streak + 1
 
 	// Completed days this month
-	var completedDays []int
+	completedDays := []int{}
 
 	for day := range completed {
 
