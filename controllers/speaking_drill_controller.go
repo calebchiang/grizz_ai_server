@@ -1,12 +1,16 @@
 package controllers
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/calebchiang/thirdparty_server/database"
 	"github.com/calebchiang/thirdparty_server/models"
+	"github.com/calebchiang/thirdparty_server/services"
+
 	"github.com/gin-gonic/gin"
+	"gorm.io/datatypes"
 )
 
 func StartSpeakingDrill(c *gin.Context) {
@@ -45,10 +49,42 @@ func StartSpeakingDrill(c *gin.Context) {
 		return
 	}
 
+	// -------- CALL AI ANALYSIS --------
+
+	result, err := services.GenerateDrillResult(input.Topic, input.Transcript)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate drill analysis",
+		})
+		return
+	}
+
+	// -------- CONVERT ARRAYS → JSONB --------
+
+	fillerWordsJSON, _ := json.Marshal(result.FillerWords)
+	strengthsJSON, _ := json.Marshal(result.Strengths)
+	weaknessesJSON, _ := json.Marshal(result.Weaknesses)
+	phrasesJSON, _ := json.Marshal(result.PhrasesToUseInstead)
+
+	// -------- CREATE DRILL --------
+
 	drill := models.SpeakingDrill{
 		UserID:     userID.(uint),
 		Topic:      input.Topic,
 		Transcript: input.Transcript,
+
+		Clarity:      result.Scores.Clarity,
+		Articulation: result.Scores.Articulation,
+		FillerRate:   result.Scores.FillerRate,
+		Pace:         result.Scores.Pace,
+		Structure:    result.Scores.Structure,
+
+		SpeakingScore: result.SpeakingScore,
+
+		FillerWords:         datatypes.JSON(fillerWordsJSON),
+		Strengths:           datatypes.JSON(strengthsJSON),
+		Weaknesses:          datatypes.JSON(weaknessesJSON),
+		PhrasesToUseInstead: datatypes.JSON(phrasesJSON),
 	}
 
 	if err := database.DB.Create(&drill).Error; err != nil {
@@ -59,11 +95,11 @@ func StartSpeakingDrill(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":    "Speaking drill created",
-		"drill_id":   drill.ID,
-		"topic":      drill.Topic,
-		"transcript": drill.Transcript,
-		"created_at": drill.CreatedAt,
+		"message":        "Speaking drill created",
+		"drill_id":       drill.ID,
+		"topic":          drill.Topic,
+		"speaking_score": drill.SpeakingScore,
+		"created_at":     drill.CreatedAt,
 	})
 }
 
