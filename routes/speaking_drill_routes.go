@@ -12,5 +12,6 @@ func SpeakingDrillRoutes(r *gin.Engine) {
 	auth.Use(middleware.RequireAuth())
 	{
 		auth.POST("/start", controllers.StartSpeakingDrill)
+		auth.GET("/challenge_status", controllers.GetChallengeStatus)
 	}
 }
