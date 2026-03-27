@@ -234,7 +234,9 @@ func GenerateDrillResult(topic string, transcript string) (*DrillResult, error) 
 
 	err = json.Unmarshal([]byte(content), &aiResp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse AI drill response: %v\nResponse: %s", err, content)
+		fmt.Println("JSON PARSE ERROR:", err)
+		fmt.Println("RAW AI RESPONSE:", content)
+		return nil, err
 	}
 
 	scores := SpeakingScores{
