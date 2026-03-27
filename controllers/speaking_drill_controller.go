@@ -94,12 +94,28 @@ func StartSpeakingDrill(c *gin.Context) {
 		return
 	}
 
+	// -------- RESPONSE --------
+
 	c.JSON(http.StatusCreated, gin.H{
-		"message":        "Speaking drill created",
-		"drill_id":       drill.ID,
-		"topic":          drill.Topic,
+		"message": "Speaking drill created",
+
+		"drill_id":   drill.ID,
+		"topic":      drill.Topic,
+		"created_at": drill.CreatedAt,
+
+		// Scores
+		"clarity":        drill.Clarity,
+		"articulation":   drill.Articulation,
+		"filler_rate":    drill.FillerRate,
+		"pace":           drill.Pace,
+		"structure":      drill.Structure,
 		"speaking_score": drill.SpeakingScore,
-		"created_at":     drill.CreatedAt,
+
+		// AI feedback
+		"filler_words":        result.FillerWords,
+		"strengths":           result.Strengths,
+		"weaknesses":          result.Weaknesses,
+		"phrase_replacements": result.PhraseReplacements,
 	})
 }
 
