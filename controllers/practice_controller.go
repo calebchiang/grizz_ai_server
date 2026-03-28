@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 	"time"
@@ -285,6 +286,20 @@ func GetRecentActivity(c *gin.Context) {
 		return
 	}
 
+	// ---------------------------
+	// READ QUERY PARAM
+	// ---------------------------
+
+	limit := 0 // default = return everything
+
+	if query := c.Query("limit"); query != "" {
+		var parsed int
+		_, err := fmt.Sscan(query, &parsed)
+		if err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+
 	type Activity struct {
 		Type      string                 `json:"type"`
 		CreatedAt time.Time              `json:"created_at"`
@@ -294,12 +309,19 @@ func GetRecentActivity(c *gin.Context) {
 	var practiceSessions []models.PracticeSession
 	var speakingDrills []models.SpeakingDrill
 
-	// Fetch latest practice sessions
-	err := database.DB.
+	// ---------------------------
+	// FETCH PRACTICE SESSIONS
+	// ---------------------------
+
+	queryPractice := database.DB.
 		Where("user_id = ?", userID).
-		Order("created_at desc").
-		Limit(8).
-		Find(&practiceSessions).Error
+		Order("created_at desc")
+
+	if limit > 0 {
+		queryPractice = queryPractice.Limit(limit)
+	}
+
+	err := queryPractice.Find(&practiceSessions).Error
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -308,12 +330,19 @@ func GetRecentActivity(c *gin.Context) {
 		return
 	}
 
-	// Fetch latest speaking drills
-	err = database.DB.
+	// ---------------------------
+	// FETCH SPEAKING DRILLS
+	// ---------------------------
+
+	queryDrills := database.DB.
 		Where("user_id = ?", userID).
-		Order("created_at desc").
-		Limit(8).
-		Find(&speakingDrills).Error
+		Order("created_at desc")
+
+	if limit > 0 {
+		queryDrills = queryDrills.Limit(limit)
+	}
+
+	err = queryDrills.Find(&speakingDrills).Error
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -324,7 +353,10 @@ func GetRecentActivity(c *gin.Context) {
 
 	var activities []Activity
 
-	// Add practice sessions
+	// ---------------------------
+	// ADD PRACTICE SESSIONS
+	// ---------------------------
+
 	for _, session := range practiceSessions {
 
 		activities = append(activities, Activity{
@@ -351,7 +383,10 @@ func GetRecentActivity(c *gin.Context) {
 		})
 	}
 
-	// Add speaking drills
+	// ---------------------------
+	// ADD SPEAKING DRILLS
+	// ---------------------------
+
 	for _, drill := range speakingDrills {
 
 		activities = append(activities, Activity{
@@ -376,14 +411,20 @@ func GetRecentActivity(c *gin.Context) {
 		})
 	}
 
-	// Sort activities by created_at DESC
+	// ---------------------------
+	// SORT ACTIVITIES
+	// ---------------------------
+
 	sort.Slice(activities, func(i, j int) bool {
 		return activities[i].CreatedAt.After(activities[j].CreatedAt)
 	})
 
-	// Limit to latest 8
-	if len(activities) > 8 {
-		activities = activities[:8]
+	// ---------------------------
+	// FINAL LIMIT
+	// ---------------------------
+
+	if limit > 0 && len(activities) > limit {
+		activities = activities[:limit]
 	}
 
 	c.JSON(http.StatusOK, gin.H{
