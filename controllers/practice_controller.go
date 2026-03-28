@@ -3,7 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
+	"sort"
 	"time"
 
 	"github.com/calebchiang/thirdparty_server/database"
@@ -275,7 +275,7 @@ func FinishPractice(c *gin.Context) {
 	})
 }
 
-func GetPracticeSessions(c *gin.Context) {
+func GetRecentActivity(c *gin.Context) {
 
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -285,26 +285,21 @@ func GetPracticeSessions(c *gin.Context) {
 		return
 	}
 
-	page := 1
-	limit := 8
-
-	// Read page query param
-	if p := c.Query("page"); p != "" {
-		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
-			page = parsed
-		}
+	type Activity struct {
+		Type      string                 `json:"type"`
+		CreatedAt time.Time              `json:"created_at"`
+		Data      map[string]interface{} `json:"data"`
 	}
 
-	offset := (page - 1) * limit
+	var practiceSessions []models.PracticeSession
+	var speakingDrills []models.SpeakingDrill
 
-	var sessions []models.PracticeSession
-
+	// Fetch latest practice sessions
 	err := database.DB.
 		Where("user_id = ?", userID).
 		Order("created_at desc").
-		Limit(limit).
-		Offset(offset).
-		Find(&sessions).Error
+		Limit(8).
+		Find(&practiceSessions).Error
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -313,9 +308,86 @@ func GetPracticeSessions(c *gin.Context) {
 		return
 	}
 
+	// Fetch latest speaking drills
+	err = database.DB.
+		Where("user_id = ?", userID).
+		Order("created_at desc").
+		Limit(8).
+		Find(&speakingDrills).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch speaking drills",
+		})
+		return
+	}
+
+	var activities []Activity
+
+	// Add practice sessions
+	for _, session := range practiceSessions {
+
+		activities = append(activities, Activity{
+			Type:      "practice_session",
+			CreatedAt: session.CreatedAt,
+			Data: map[string]interface{}{
+				"id":                 session.ID,
+				"scenario":           session.Scenario,
+				"persona":            session.Persona,
+				"duration_seconds":   session.DurationSeconds,
+				"started_at":         session.StartedAt,
+				"ended_at":           session.EndedAt,
+				"transcript":         session.Transcript,
+				"clarity":            session.Clarity,
+				"engagement":         session.Engagement,
+				"confidence":         session.Confidence,
+				"conversation_flow":  session.ConversationFlow,
+				"social_awareness":   session.SocialAwareness,
+				"conversation_score": session.ConversationScore,
+				"strengths":          session.Strengths,
+				"weaknesses":         session.Weaknesses,
+				"created_at":         session.CreatedAt,
+			},
+		})
+	}
+
+	// Add speaking drills
+	for _, drill := range speakingDrills {
+
+		activities = append(activities, Activity{
+			Type:      "speaking_drill",
+			CreatedAt: drill.CreatedAt,
+			Data: map[string]interface{}{
+				"id":             drill.ID,
+				"topic":          drill.Topic,
+				"transcript":     drill.Transcript,
+				"clarity":        drill.Clarity,
+				"articulation":   drill.Articulation,
+				"filler_rate":    drill.FillerRate,
+				"pace":           drill.Pace,
+				"structure":      drill.Structure,
+				"speaking_score": drill.SpeakingScore,
+				"filler_words":   drill.FillerWords,
+				"strengths":      drill.Strengths,
+				"weaknesses":     drill.Weaknesses,
+				"phrases":        drill.PhrasesToUseInstead,
+				"created_at":     drill.CreatedAt,
+			},
+		})
+	}
+
+	// Sort activities by created_at DESC
+	sort.Slice(activities, func(i, j int) bool {
+		return activities[i].CreatedAt.After(activities[j].CreatedAt)
+	})
+
+	// Limit to latest 8
+	if len(activities) > 8 {
+		activities = activities[:8]
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"sessions": sessions,
-		"page":     page,
+		"activities": activities,
 	})
 }
 
