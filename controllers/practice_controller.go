@@ -396,6 +396,7 @@ func GetRecentActivity(c *gin.Context) {
 				"id":             drill.ID,
 				"topic":          drill.Topic,
 				"transcript":     drill.Transcript,
+				"video_url":      drill.VideoURL,
 				"clarity":        drill.Clarity,
 				"articulation":   drill.Articulation,
 				"filler_rate":    drill.FillerRate,
