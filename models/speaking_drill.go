@@ -13,6 +13,8 @@ type SpeakingDrill struct {
 	Topic      string `gorm:"not null"`
 	Transcript string `gorm:"type:text"`
 
+	VideoURL *string `gorm:"type:text"`
+
 	// Speaking delivery traits (0–10 each)
 	Clarity      int `gorm:"default:0"`
 	Articulation int `gorm:"default:0"`

@@ -8,6 +8,7 @@ import (
 	"github.com/calebchiang/thirdparty_server/database"
 	"github.com/calebchiang/thirdparty_server/models"
 	"github.com/calebchiang/thirdparty_server/services"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/datatypes"
@@ -23,38 +24,68 @@ func StartSpeakingDrill(c *gin.Context) {
 		return
 	}
 
-	var input struct {
-		Topic      string `json:"topic"`
-		Transcript string `json:"transcript"`
-	}
+	// -------- PARSE FORM INPUT --------
 
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
-		})
-		return
-	}
+	topic := c.PostForm("topic")
+	transcript := c.PostForm("transcript")
 
-	if input.Topic == "" {
+	if topic == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Topic is required",
 		})
 		return
 	}
 
-	if input.Transcript == "" {
+	if transcript == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Transcript is required",
 		})
 		return
 	}
 
-	// -------- CALL AI ANALYSIS --------
+	// Optional video file
+	videoFile, _ := c.FormFile("video")
 
-	result, err := services.GenerateDrillResult(input.Topic, input.Transcript)
-	if err != nil {
+	// -------- CONCURRENT TASKS --------
+
+	var (
+		result   *services.DrillResult
+		videoURL *string
+	)
+
+	var g errgroup.Group
+
+	// AI analysis
+	g.Go(func() error {
+
+		r, err := services.GenerateDrillResult(topic, transcript)
+		if err != nil {
+			return err
+		}
+
+		result = r
+		return nil
+	})
+
+	// Video upload (optional)
+	if videoFile != nil {
+
+		g.Go(func() error {
+
+			url, err := services.UploadVideoToR2(videoFile)
+			if err != nil {
+				return err
+			}
+
+			videoURL = &url
+			return nil
+		})
+	}
+
+	// Wait for both tasks
+	if err := g.Wait(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate drill analysis",
+			"error": "Failed to process speaking drill",
 		})
 		return
 	}
@@ -70,8 +101,9 @@ func StartSpeakingDrill(c *gin.Context) {
 
 	drill := models.SpeakingDrill{
 		UserID:     userID.(uint),
-		Topic:      input.Topic,
-		Transcript: input.Transcript,
+		Topic:      topic,
+		Transcript: transcript,
+		VideoURL:   videoURL,
 
 		Clarity:      result.Scores.Clarity,
 		Articulation: result.Scores.Articulation,
@@ -102,6 +134,7 @@ func StartSpeakingDrill(c *gin.Context) {
 		"drill_id":   drill.ID,
 		"topic":      drill.Topic,
 		"created_at": drill.CreatedAt,
+		"video_url":  drill.VideoURL,
 
 		// Scores
 		"clarity":        drill.Clarity,
