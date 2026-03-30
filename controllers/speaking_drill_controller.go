@@ -135,6 +135,7 @@ func StartSpeakingDrill(c *gin.Context) {
 		"topic":      drill.Topic,
 		"created_at": drill.CreatedAt,
 		"video_url":  drill.VideoURL,
+		"transcript": drill.Transcript,
 
 		// Scores
 		"clarity":        drill.Clarity,
