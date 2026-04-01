@@ -21,6 +21,7 @@ func main() {
 		&models.ChallengeCompletion{},
 		&models.Topic{},
 		&models.SpeakingDrill{},
+		&models.Vocabulary{},
 	)
 
 	r := gin.Default()
