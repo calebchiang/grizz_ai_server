@@ -33,6 +33,7 @@ func main() {
 	routes.TopicRoutes(r)
 	routes.SpeakingDrillRoutes(r)
 	routes.VideoRoutes(r)
+	routes.VocabularyRoutes(r)
 
 	r.Run()
 }
