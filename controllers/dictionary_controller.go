@@ -150,7 +150,7 @@ func GetRecentWords(c *gin.Context) {
 		Preload("Vocabulary").
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
-		Limit(5).
+		Limit(6).
 		Find(&dictionaryEntries).Error
 
 	if err != nil {
