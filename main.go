@@ -35,6 +35,7 @@ func main() {
 	routes.SpeakingDrillRoutes(r)
 	routes.VideoRoutes(r)
 	routes.VocabularyRoutes(r)
+	routes.DictionaryRoutes(r)
 
 	r.Run()
 }
