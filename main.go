@@ -22,6 +22,7 @@ func main() {
 		&models.Topic{},
 		&models.SpeakingDrill{},
 		&models.Vocabulary{},
+		&models.Dictionary{},
 	)
 
 	r := gin.Default()
