@@ -69,3 +69,59 @@ func SaveWord(c *gin.Context) {
 		"message": "Word saved",
 	})
 }
+
+func GetUserDictionary(c *gin.Context) {
+
+	// -------------------------
+	// GET USER ID FROM JWT
+	// -------------------------
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	// -------------------------
+	// FETCH USER DICTIONARY
+	// -------------------------
+
+	var dictionaryEntries []models.Dictionary
+
+	err := database.DB.
+		Preload("Vocabulary").
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Find(&dictionaryEntries).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch dictionary",
+		})
+		return
+	}
+
+	// -------------------------
+	// EXTRACT VOCABULARY WORDS
+	// -------------------------
+
+	var words []models.Vocabulary
+
+	for _, entry := range dictionaryEntries {
+		words = append(words, entry.Vocabulary)
+	}
+
+	if words == nil {
+		words = []models.Vocabulary{}
+	}
+
+	// -------------------------
+	// RESPONSE
+	// -------------------------
+
+	c.JSON(http.StatusOK, gin.H{
+		"words": words,
+	})
+}

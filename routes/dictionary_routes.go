@@ -12,5 +12,6 @@ func DictionaryRoutes(r *gin.Engine) {
 	auth.Use(middleware.RequireAuth())
 	{
 		auth.POST("/save", controllers.SaveWord)
+		auth.GET("/", controllers.GetUserDictionary)
 	}
 }
