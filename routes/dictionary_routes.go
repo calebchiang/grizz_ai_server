@@ -14,5 +14,6 @@ func DictionaryRoutes(r *gin.Engine) {
 		auth.POST("/save", controllers.SaveWord)
 		auth.GET("/", controllers.GetUserDictionary)
 		auth.GET("/recent_words", controllers.GetRecentWords)
+		auth.DELETE("/remove/:vocabulary_id", controllers.RemoveWord)
 	}
 }

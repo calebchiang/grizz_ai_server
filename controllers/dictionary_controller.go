@@ -182,3 +182,54 @@ func GetRecentWords(c *gin.Context) {
 		"words": words,
 	})
 }
+
+func RemoveWord(c *gin.Context) {
+
+	// -------------------------
+	// GET USER ID FROM JWT
+	// -------------------------
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	// -------------------------
+	// GET VOCABULARY ID FROM PARAM
+	// -------------------------
+
+	vocabularyID := c.Param("vocabulary_id")
+
+	if vocabularyID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Vocabulary ID required",
+		})
+		return
+	}
+
+	// -------------------------
+	// DELETE DICTIONARY ENTRY
+	// -------------------------
+
+	err := database.DB.
+		Where("user_id = ? AND vocabulary_id = ?", userID, vocabularyID).
+		Delete(&models.Dictionary{}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to remove word",
+		})
+		return
+	}
+
+	// -------------------------
+	// RESPONSE
+	// -------------------------
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Word removed from dictionary",
+	})
+}
