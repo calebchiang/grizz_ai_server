@@ -80,6 +80,8 @@ func RevenueCatWebhook(c *gin.Context) {
 	if eventType == "EXPIRATION" || eventType == "CANCELLATION" {
 
 		user.IsPremium = false
+		user.Credits = 0
+		user.SeenOnboarding = false
 
 		if err := database.DB.Save(&user).Error; err != nil {
 			fmt.Println("❌ Failed updating expiration:", err)
