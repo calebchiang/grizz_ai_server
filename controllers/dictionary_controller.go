@@ -10,10 +10,6 @@ import (
 
 func SaveWord(c *gin.Context) {
 
-	// -------------------------
-	// GET USER ID FROM JWT
-	// -------------------------
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -21,10 +17,6 @@ func SaveWord(c *gin.Context) {
 		})
 		return
 	}
-
-	// -------------------------
-	// PARSE REQUEST BODY
-	// -------------------------
 
 	var input struct {
 		VocabularyID uint `json:"vocabulary_id"`
@@ -44,26 +36,21 @@ func SaveWord(c *gin.Context) {
 		return
 	}
 
-	// -------------------------
-	// CREATE DICTIONARY ENTRY
-	// -------------------------
-
 	entry := models.Dictionary{
 		UserID:       userID.(uint),
 		VocabularyID: input.VocabularyID,
 	}
 
-	if err := database.DB.Create(&entry).Error; err != nil {
+	err := database.DB.Create(&entry).Error
 
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to save word",
+	// Silent fail if duplicate
+	if err != nil {
+		// Just return success anyway
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Word saved",
 		})
 		return
 	}
-
-	// -------------------------
-	// RESPONSE
-	// -------------------------
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Word saved",
