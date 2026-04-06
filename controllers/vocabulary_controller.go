@@ -19,9 +19,7 @@ func GetDailyVocabulary(c *gin.Context) {
 
 	userIDRaw, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Unauthorized",
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
@@ -30,9 +28,7 @@ func GetDailyVocabulary(c *gin.Context) {
 	var user models.User
 
 	if err := db.First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "User not found",
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 		return
 	}
 
@@ -56,7 +52,7 @@ func GetDailyVocabulary(c *gin.Context) {
 	)
 
 	// ---------------------------
-	// CHECK FOR EXISTING SESSION
+	// FIND OR CREATE SESSION
 	// ---------------------------
 
 	var session models.VocabularySession
@@ -66,10 +62,6 @@ func GetDailyVocabulary(c *gin.Context) {
 		First(&session).Error
 
 	if err != nil {
-
-		// ---------------------------
-		// CREATE NEW SESSION
-		// ---------------------------
 
 		session = models.VocabularySession{
 			UserID: user.ID,
@@ -110,6 +102,7 @@ func GetDailyVocabulary(c *gin.Context) {
 				SessionID:    session.ID,
 				VocabularyID: word.ID,
 				OrderIndex:   i,
+				Completed:    false,
 			}
 
 			db.Create(&sessionWord)
@@ -149,16 +142,30 @@ func GetDailyVocabulary(c *gin.Context) {
 	}
 
 	// ---------------------------
+	// CALCULATE CURRENT INDEX
+	// ---------------------------
+
+	currentIndex := 0
+
+	for i, sw := range sessionWords {
+		if !sw.Completed {
+			currentIndex = i
+			break
+		}
+	}
+
+	// ---------------------------
 	// RESPONSE
 	// ---------------------------
 
 	c.JSON(http.StatusOK, gin.H{
-		"words":     words,
-		"completed": session.Completed,
+		"words":         words,
+		"completed":     session.Completed,
+		"current_index": currentIndex,
 	})
 }
 
-func CompleteVocabularySession(c *gin.Context) {
+func UpdateVocabularyProgress(c *gin.Context) {
 
 	db := database.DB
 
@@ -168,26 +175,31 @@ func CompleteVocabularySession(c *gin.Context) {
 
 	userIDRaw, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Unauthorized",
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
 	userID := userIDRaw.(uint)
 
-	var user models.User
+	var body struct {
+		OrderIndex int `json:"order_index"`
+	}
 
-	if err := db.First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "User not found",
-		})
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	// ---------------------------
-	// DETERMINE USER LOCAL DAY
+	// FIND USER
 	// ---------------------------
+
+	var user models.User
+
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
 
 	location, err := time.LoadLocation(user.Timezone)
 	if err != nil {
@@ -210,6 +222,73 @@ func CompleteVocabularySession(c *gin.Context) {
 
 	var session models.VocabularySession
 
+	if err := db.
+		Where("user_id = ? AND date = ?", user.ID, today).
+		First(&session).Error; err != nil {
+
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Session not found"})
+		return
+	}
+
+	// ---------------------------
+	// FIND SESSION WORD
+	// ---------------------------
+
+	var sessionWord models.VocabularySessionWord
+
+	if err := db.
+		Where("session_id = ? AND order_index = ?", session.ID, body.OrderIndex).
+		First(&sessionWord).Error; err != nil {
+
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Word not found"})
+		return
+	}
+
+	sessionWord.Completed = true
+
+	db.Save(&sessionWord)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Progress updated",
+	})
+}
+
+func CompleteVocabularySession(c *gin.Context) {
+
+	db := database.DB
+
+	userIDRaw, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID := userIDRaw.(uint)
+
+	var user models.User
+
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	location, err := time.LoadLocation(user.Timezone)
+	if err != nil {
+		location = time.UTC
+	}
+
+	now := time.Now().In(location)
+
+	today := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		0, 0, 0, 0,
+		location,
+	)
+
+	var session models.VocabularySession
+
 	err = db.
 		Where("user_id = ? AND date = ?", user.ID, today).
 		First(&session).Error
@@ -221,10 +300,6 @@ func CompleteVocabularySession(c *gin.Context) {
 		return
 	}
 
-	// ---------------------------
-	// PREVENT DOUBLE XP
-	// ---------------------------
-
 	if session.XPRewarded {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Vocabulary already completed",
@@ -233,33 +308,14 @@ func CompleteVocabularySession(c *gin.Context) {
 		return
 	}
 
-	// ---------------------------
-	// REWARD XP
-	// ---------------------------
-
 	const xpReward = 50
 
 	user.XP += xpReward
 	session.Completed = true
 	session.XPRewarded = true
 
-	if err := db.Save(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to update user XP",
-		})
-		return
-	}
-
-	if err := db.Save(&session).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to update session",
-		})
-		return
-	}
-
-	// ---------------------------
-	// RESPONSE
-	// ---------------------------
+	db.Save(&user)
+	db.Save(&session)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Vocabulary session completed",

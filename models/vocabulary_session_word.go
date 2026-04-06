@@ -11,7 +11,8 @@ type VocabularySessionWord struct {
 	VocabularyID uint       `gorm:"index;not null"`
 	Vocabulary   Vocabulary `gorm:"foreignKey:VocabularyID"`
 
-	OrderIndex int `gorm:"not null"` // preserves the 1-5 order shown to the user
+	OrderIndex int  `gorm:"not null"` // preserves the 1-5 order shown to the user
+	Completed  bool `gorm:"default:false"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
