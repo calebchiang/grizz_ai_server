@@ -14,10 +14,18 @@ func GetDailyVocabulary(c *gin.Context) {
 	db := database.DB
 
 	// ---------------------------
-	// GET USER ID FROM CONTEXT
+	// GET USER FROM CONTEXT
 	// ---------------------------
 
-	userID := c.GetUint("userID")
+	userIDRaw, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	userID := userIDRaw.(uint)
 
 	var user models.User
 
@@ -136,7 +144,6 @@ func GetDailyVocabulary(c *gin.Context) {
 		words = append(words, sw.Vocabulary)
 	}
 
-	// Prevent null JSON
 	if words == nil {
 		words = []models.Vocabulary{}
 	}
@@ -156,10 +163,18 @@ func CompleteVocabularySession(c *gin.Context) {
 	db := database.DB
 
 	// ---------------------------
-	// GET USER
+	// GET USER FROM CONTEXT
 	// ---------------------------
 
-	userID := c.GetUint("userID")
+	userIDRaw, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	userID := userIDRaw.(uint)
 
 	var user models.User
 
