@@ -117,10 +117,6 @@ func StartPractice(c *gin.Context) {
 		return
 	}
 
-	// ---------------------------
-	// RESPONSE
-	// ---------------------------
-
 	c.JSON(http.StatusCreated, gin.H{
 		"session_id": session.ID,
 		"scenario":   session.Scenario,
