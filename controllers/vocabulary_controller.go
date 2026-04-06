@@ -300,26 +300,28 @@ func CompleteVocabularySession(c *gin.Context) {
 		return
 	}
 
-	if session.XPRewarded {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Vocabulary already completed",
-			"xp":      0,
-		})
-		return
+	// Always mark session completed
+	session.Completed = true
+
+	xp := 0
+
+	// Only give XP once
+	if !session.XPRewarded {
+
+		const xpReward = 50
+
+		user.XP += xpReward
+		session.XPRewarded = true
+		xp = xpReward
+
+		db.Save(&user)
 	}
 
-	const xpReward = 50
-
-	user.XP += xpReward
-	session.Completed = true
-	session.XPRewarded = true
-
-	db.Save(&user)
 	db.Save(&session)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Vocabulary session completed",
-		"xp":      xpReward,
+		"xp":      xp,
 	})
 }
 
