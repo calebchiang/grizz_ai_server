@@ -11,6 +11,7 @@ func VocabularyRoutes(r *gin.Engine) {
 	auth := r.Group("/vocabulary")
 	auth.Use(middleware.RequireAuth())
 	{
-		auth.GET("", controllers.GetRandomVocabulary)
+		auth.GET("", controllers.GetDailyVocabulary)
+		auth.POST("/complete", controllers.CompleteVocabularySession)
 	}
 }
