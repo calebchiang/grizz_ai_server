@@ -14,5 +14,6 @@ func VocabularyRoutes(r *gin.Engine) {
 		auth.GET("", controllers.GetDailyVocabulary)
 		auth.POST("/complete", controllers.CompleteVocabularySession)
 		auth.POST("/progress", controllers.UpdateVocabularyProgress)
+		auth.POST("/review", controllers.ReviewVocabularySession)
 	}
 }

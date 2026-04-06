@@ -322,3 +322,88 @@ func CompleteVocabularySession(c *gin.Context) {
 		"xp":      xpReward,
 	})
 }
+
+func ReviewVocabularySession(c *gin.Context) {
+
+	db := database.DB
+
+	// ---------------------------
+	// GET USER FROM CONTEXT
+	// ---------------------------
+
+	userIDRaw, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID := userIDRaw.(uint)
+
+	var user models.User
+
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	// ---------------------------
+	// DETERMINE USER LOCAL DAY
+	// ---------------------------
+
+	location, err := time.LoadLocation(user.Timezone)
+	if err != nil {
+		location = time.UTC
+	}
+
+	now := time.Now().In(location)
+
+	today := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		0, 0, 0, 0,
+		location,
+	)
+
+	// ---------------------------
+	// FIND SESSION
+	// ---------------------------
+
+	var session models.VocabularySession
+
+	if err := db.
+		Where("user_id = ? AND date = ?", user.ID, today).
+		First(&session).Error; err != nil {
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Session not found",
+		})
+		return
+	}
+
+	// ---------------------------
+	// RESET WORD COMPLETION
+	// ---------------------------
+
+	if err := db.Model(&models.VocabularySessionWord{}).
+		Where("session_id = ?", session.ID).
+		Update("completed", false).Error; err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to reset vocabulary progress",
+		})
+		return
+	}
+
+	// ---------------------------
+	// RESET SESSION STATE
+	// ---------------------------
+
+	session.Completed = false
+
+	db.Save(&session)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Vocabulary session reset",
+	})
+}
