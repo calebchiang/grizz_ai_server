@@ -41,6 +41,7 @@ func main() {
 	routes.VideoRoutes(r)
 	routes.VocabularyRoutes(r)
 	routes.DictionaryRoutes(r)
+	routes.CourseRoutes(r)
 
 	r.Run()
 }
