@@ -25,6 +25,9 @@ func main() {
 		&models.Dictionary{},
 		&models.VocabularySession{},
 		&models.VocabularySessionWord{},
+		&models.Course{},
+		&models.Lesson{},
+		&models.LessonBlock{},
 	)
 
 	r := gin.Default()
