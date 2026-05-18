@@ -15,6 +15,7 @@ type CourseResponse struct {
 	Description string `json:"Description"`
 	SortOrder   int    `json:"SortOrder"`
 	IsPublished bool   `json:"IsPublished"`
+	LessonCount int64  `json:"LessonCount"`
 }
 
 func GetCourses(c *gin.Context) {
@@ -39,6 +40,14 @@ func GetCourses(c *gin.Context) {
 	var response []CourseResponse
 
 	for _, course := range courses {
+
+		var lessonCount int64
+
+		database.DB.
+			Model(&models.Lesson{}).
+			Where("course_id = ? AND is_published = ?", course.ID, true).
+			Count(&lessonCount)
+
 		response = append(response, CourseResponse{
 			ID:          course.ID,
 			Category:    course.Category,
@@ -46,6 +55,7 @@ func GetCourses(c *gin.Context) {
 			Description: course.Description,
 			SortOrder:   course.SortOrder,
 			IsPublished: course.IsPublished,
+			LessonCount: lessonCount,
 		})
 	}
 
